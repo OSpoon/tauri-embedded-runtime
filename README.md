@@ -85,7 +85,8 @@ pnpm build
 ### 发布版本
 
 项目使用 `bumpp` 同步更新 `package.json`、`src-tauri/Cargo.toml` 和
-`src-tauri/tauri.conf.json`，并创建带 `v` 前缀的 Git tag。确认工作区干净且已配置
+`src-tauri/tauri.conf.json`，并创建带 `v` 前缀的 Git tag。版本更新后，bumpp 会调用 Cargo
+自动维护 `src-tauri/Cargo.lock`，并将该自动生成的变化一并提交。确认工作区干净且已配置
 GitHub 推送权限后执行：
 
 ```bash

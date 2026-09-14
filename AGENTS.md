@@ -16,8 +16,9 @@ system's `PATH`, shell configuration, or global package directories.
 - Use the Rust toolchain declared in `rust-toolchain.toml`.
 - Keep GitHub Actions on Node.js 24-compatible releases: `actions/checkout@v7`,
   `actions/setup-node@v7`, and `pnpm/action-setup@v6.1.0`.
-- Keep the versions in `package.json`, `src-tauri/Cargo.toml`, and
-  `src-tauri/tauri.conf.json` synchronized. These files are updated together by `bumpp`.
+- Keep the versions in `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`
+  synchronized. These files are updated together by `bumpp`. Let Cargo maintain
+  `src-tauri/Cargo.lock` automatically; do not hand-edit its package versions.
 - Keep dependency changes in both `package.json` and `pnpm-lock.yaml`. Do not hand-edit the
   lockfile when the package manager can regenerate it.
 
@@ -135,8 +136,10 @@ malformed prefix may be omitted from the generated notes.
 
 1. Selecting or receiving the new semantic version.
 2. Updating `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
-3. Creating the `release: v<version>` commit.
-4. Creating the `v<version>` tag and pushing the commit and tag.
+3. Running Cargo through bumpp's built-in `execute` command so Cargo can refresh
+   `src-tauri/Cargo.lock` automatically.
+4. Creating the `release: v<version>` commit, including Cargo's generated lockfile update.
+5. Creating the `v<version>` tag and pushing the commit and tag.
 
 `changelogithub --draft` is responsible for generating and updating the GitHub Release notes
 from the commits between version tags. It runs in GitHub Actions after all platform artifacts
@@ -165,7 +168,7 @@ workflow.
   unless the user explicitly requests that operation. `pnpm release` is intentionally an
   external write because it commits, tags, and pushes.
 - Before a release, verify that no unrelated changes are present. The `bumpp` configuration
-  uses `all: false` so the release commit contains only the synchronized version files.
+  uses `all: true` so its release commit also contains the Cargo-generated `Cargo.lock` update.
 - Treat runtime downloads, process execution, filesystem writes, and service lifecycle
   operations as security-sensitive. Preserve local-only binding, checksum verification,
   cancellation, cleanup, and rollback behavior.

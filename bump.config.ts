@@ -10,5 +10,6 @@ export default defineConfig({
   tag: "v%s",
   push: true,
   install: true,
-  all: false,
+  execute: "cargo check --manifest-path src-tauri/Cargo.toml",
+  all: true,
 })
