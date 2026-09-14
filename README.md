@@ -1,0 +1,137 @@
+# Tauri Runtime App
+
+一个基于 Tauri 2 的桌面应用运行时示例。
+
+应用会在自己的数据目录中准备 Python、Node.js 以及业务服务依赖，并启动本地服务供
+桌面端调用。运行时与项目依赖不会写入宿主机的 PATH、Shell 配置或全局包目录。
+
+## 适合什么场景
+
+- 桌面应用需要内置 Python 或 Node.js 服务
+- 不希望用户预先安装开发环境
+- 不希望污染用户已有的 Python、Node.js 和全局依赖
+- 需要在首次打开应用时展示可理解的安装进度
+- 需要为不同业务服务维护独立的项目依赖
+
+## 使用方式
+
+启动应用后，点击“运行检测”。应用会按顺序检查并准备环境：
+
+```text
+检查安装环境
+  → 准备 Python
+  → 安装 FastAPI 环境
+  → 准备 Node.js
+  → 安装 Express 环境
+  → 检查项目工具
+  → 验证运行时
+```
+
+每个步骤都可以展开查看日志。首次运行会下载运行时和项目依赖，后续运行会复用已
+通过校验的内容；只有版本变化、文件缺失或依赖损坏时才会重新准备。
+
+环境准备完成后，点击“打开业务首页”即可调用内置的 FastAPI 和 Express 示例服务。
+两个服务只监听本机地址，并由应用负责分配端口、健康检查和关闭回收。
+
+## 主要特性
+
+- 应用私有的 Python、Node.js 运行时
+- Python 项目使用独立 virtualenv
+- Node.js 项目使用独立 `node_modules`
+- 固定版本、SHA-256 校验和断点续传
+- 安装过程可取消、重试，并保留上一份可用环境
+- 项目依赖缺失、损坏或基础运行时更新后可重新准备
+- 服务启动失败时自动停止已启动的服务
+- 应用退出时回收由应用启动的服务进程
+- 基于 shadcn-vue 的统一界面组件和滚动区域
+
+## 开始使用
+
+### 环境要求
+
+- Node.js `24.15.0`
+- pnpm `10.15.1`
+- Rust `1.95.0`
+- Tauri 2 对应的平台 WebView、编译器和系统依赖
+
+Node.js 和 Rust 版本分别记录在 [`.nvmrc`](./.nvmrc) 和
+[`rust-toolchain.toml`](./rust-toolchain.toml) 中，pnpm 版本记录在
+[`package.json`](./package.json) 中。
+
+Linux 用户请先按照 [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
+安装系统依赖。
+
+### 安装依赖
+
+```bash
+pnpm install --frozen-lockfile
+```
+
+### 启动应用
+
+```bash
+pnpm tauri dev
+```
+
+首次运行需要网络访问运行时制品源和 Python/Node.js 包源。运行时文件会写入 Tauri
+应用数据目录，不会安装到用户的系统环境中。
+
+### 构建前端
+
+```bash
+pnpm build
+```
+
+## 数据与安全边界
+
+运行时、下载缓存、项目环境和服务日志均保存在应用私有数据目录中。服务默认只绑定
+`127.0.0.1`，不会自动暴露到局域网。
+
+这套机制解决的是依赖隔离、版本管理和进程生命周期问题，不是用于执行不可信代码的
+安全沙箱。应用仍然需要遵循操作系统权限和网络安全边界。
+
+## 故障处理
+
+如果某个步骤失败：
+
+1. 展开失败步骤查看具体日志。
+2. 确认网络可用、磁盘空间充足。
+3. 点击“修复并启动”重新准备缺失或损坏的内容。
+4. 如果只是项目依赖变化，可重新执行检测，应用会保留可复用的基础运行时。
+
+服务启动失败时，应用会停止本次启动的服务，并保留上一份可用运行时（如果存在）。
+
+## 项目扩展
+
+项目资源按服务分别存放在 `src-tauri/resources/projects/<project-id>/` 下。新增业务
+项目时，为它创建独立目录和 `project.json`，再在
+`src-tauri/src/runtime/projects/` 注册对应模块。
+
+服务注册表会生成对应的运行时准备阶段和项目依赖阶段。同一服务下可以注册多个项目，
+它们会在同一个服务阶段内依次准备，不需要复制整套安装流程。
+
+运行时制品的版本、平台、架构、下载地址、归档格式和 SHA-256 摘要统一维护在
+[`src-tauri/resources/runtime-artifacts.json`](./src-tauri/resources/runtime-artifacts.json)。
+
+## 开发检查
+
+提交代码前可以执行：
+
+```bash
+pnpm build
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo test --manifest-path src-tauri/Cargo.toml --locked
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
+cargo check --manifest-path src-tauri/Cargo.toml --locked
+```
+
+GitHub Actions 会在 Pull Request 和 push 时执行相同的核心检查，配置见
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml)。
+
+开发者接入 Python 或 Node.js 项目的步骤见
+[`docs/development/project-adapter.md`](./docs/development/project-adapter.md)。
+
+## 许可证
+
+本项目使用 [MIT License](./LICENSE)。项目依赖、字体和运行时制品仍受各自上游许可
+证约束，具体版本以 `pnpm-lock.yaml` 和 `src-tauri/Cargo.lock` 为准。

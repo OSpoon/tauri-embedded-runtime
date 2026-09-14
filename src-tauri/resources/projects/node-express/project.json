@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "project_id": "node-express",
+  "service": "node",
+  "framework": "express",
+  "display_name": "Express",
+  "entrypoint": "services/node_service.mjs",
+  "launch_args": ["{entrypoint}", "--port", "{port}"],
+  "health_path": "/health",
+  "demo_path": "/api/hello?name=developer",
+  "package_name": "runtime-node-demo",
+  "dependencies": {
+    "express": "4.21.2"
+  },
+  "tools": []
+}

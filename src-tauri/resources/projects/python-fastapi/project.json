@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "project_id": "python-fastapi",
+  "service": "python",
+  "framework": "fastapi",
+  "display_name": "FastAPI",
+  "entrypoint": "services/python_service.py",
+  "launch_args": ["{entrypoint}", "--port", "{port}"],
+  "health_path": "/health",
+  "demo_path": "/api/hello?name=developer",
+  "requirements": [
+    "fastapi==0.115.6",
+    "uvicorn==0.34.0"
+  ],
+  "tools": [
+    {
+      "name": "ffmpeg",
+      "required": false,
+      "artifact_id": null,
+      "executable": "ffmpeg"
+    }
+  ]
+}
