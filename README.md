@@ -99,9 +99,9 @@ pnpm release
 发布 tag 会触发 [Release workflow](./.github/workflows/release.yml)，默认构建 macOS ARM 和
 Windows 安装包并创建 GitHub Draft Release。macOS Intel 和 Linux 构建项已在 workflow 中保留，
 需要时可以取消注释。稳定版本构建全部启用的安装包；预发布版本的 Windows 构建使用 NSIS，
-以满足 MSI 对数值版本号的限制。构建完成后，workflow 使用
-`changelogithub` 根据 Conventional Commits 生成 GitHub Release notes。检查构建产物和
-发布说明后，在 GitHub Release 页面手动发布。发布说明以
+以满足 MSI 对数值版本号的限制。构建完成后，workflow 将构建结果保存到 GitHub Draft
+Release，发布说明由维护者在 GitHub Release 页面手动维护。检查构建产物和发布说明后再
+正式发布。发布说明以
 [GitHub Releases](https://github.com/OSpoon/tauri-runtime-app/releases) 为准，
 [`CHANGELOG.md`](./CHANGELOG.md) 记录生成约定。
 

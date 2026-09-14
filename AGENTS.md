@@ -129,9 +129,9 @@ ci: build Tauri bundles for supported platforms
 The release commit is an automated exception and must use `release: v<version>`. It is
 created by `bumpp`; do not create or rewrite it manually.
 
-Commit messages must follow this format because `changelogithub` parses Conventional Commits
-to classify entries and determine GitHub release notes. Commits with an unsupported or
-malformed prefix may be omitted from the generated notes.
+Commit messages must follow this format to keep the project history and manually maintained
+release notes consistent. Commits with an unsupported or malformed prefix may be omitted from
+release summaries.
 
 ## CHANGELOG and Release Automation
 
@@ -144,11 +144,10 @@ malformed prefix may be omitted from the generated notes.
 4. Creating the `release: v<version>` commit, including Cargo's generated lockfile update.
 5. Creating the `v<version>` tag and pushing the commit and tag.
 
-`changelogithub --draft` is responsible for generating and updating the GitHub Release notes
-from the commits between version tags. It runs in GitHub Actions after all platform artifacts
-have been uploaded and keeps the release available for manual review. This follows the
-upstream `bumpp` release pattern and keeps release-note generation in the tag-triggered
-workflow rather than adding a repository-specific script.
+The tag-triggered workflow builds and uploads the enabled platform artifacts and creates a Draft
+Release. It does not automatically generate release notes; maintainers review and edit the Draft
+Release description manually. `changelogithub` remains an optional local tool for generating a
+preview when needed, but it is not part of the GitHub Actions release path.
 
 Use the following workflow:
 
@@ -156,15 +155,14 @@ Use the following workflow:
 2. Run `pnpm release` and select `patch`, `minor`, `major`, or an explicit version.
 3. Review all synchronized version files and the release summary before confirming.
 4. The `v<version>` tag triggers `.github/workflows/release.yml`.
-5. The workflow builds all enabled matrix platform artifacts, creates a Draft Release, and
-   generates its release notes with `changelogithub`. Intel macOS and Linux entries are kept
-   commented in the matrix by default and must be explicitly enabled when needed.
-6. Review the platform artifacts, generated notes, and signature status in the GitHub Draft
-   Release before publishing it.
+5. The workflow builds all enabled matrix platform artifacts and creates a Draft Release. Intel
+   macOS and Linux entries are kept commented in the matrix by default and must be explicitly
+   enabled when needed.
+6. Review the platform artifacts, manually maintained release description, and signature status
+   in the GitHub Draft Release before publishing it.
 
-Do not generate release notes with a custom repository script or create release tags by hand.
-Those actions bypass the Tauri version synchronization and the repository's Draft Release
-workflow.
+Do not create release tags by hand. That bypasses the Tauri version synchronization and the
+repository's Draft Release workflow.
 
 ## Change Safety and External Effects
 
