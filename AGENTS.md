@@ -156,8 +156,9 @@ Use the following workflow:
 2. Run `pnpm release` and select `patch`, `minor`, `major`, or an explicit version.
 3. Review all synchronized version files and the release summary before confirming.
 4. The `v<version>` tag triggers `.github/workflows/release.yml`.
-5. The workflow builds all supported platform artifacts, creates a Draft Release, and
-   generates its release notes with `changelogithub`.
+5. The workflow builds all enabled matrix platform artifacts, creates a Draft Release, and
+   generates its release notes with `changelogithub`. Intel macOS and Linux entries are kept
+   commented in the matrix by default and must be explicitly enabled when needed.
 6. Review the platform artifacts, generated notes, and signature status in the GitHub Draft
    Release before publishing it.
 
