@@ -10,5 +10,5 @@ export default defineConfig({
   tag: "v%s",
   push: true,
   install: true,
-  all: true,
+  all: false,
 })

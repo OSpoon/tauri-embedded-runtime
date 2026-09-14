@@ -92,9 +92,15 @@ GitHub 推送权限后执行：
 pnpm release
 ```
 
+`bumpp` 会创建 `release: v<version>` 提交、`v<version>` tag 并推送到 GitHub。
+提交格式和发布约束见 [`AGENTS.md`](./AGENTS.md)。
+
 发布 tag 会触发 [Release workflow](./.github/workflows/release.yml)，构建 macOS、
-Linux 和 Windows 安装包并创建 GitHub Draft Release。检查构建产物后，在 GitHub
-Release 页面手动发布。
+Linux 和 Windows 安装包并创建 GitHub Draft Release。构建完成后，workflow 使用
+`changelogithub` 根据 Conventional Commits 生成 GitHub Release notes。检查构建产物和
+发布说明后，在 GitHub Release 页面手动发布。发布说明以
+[GitHub Releases](https://github.com/OSpoon/tauri-runtime-app/releases) 为准，
+[`CHANGELOG.md`](./CHANGELOG.md) 记录生成约定。
 
 ## 数据与安全边界
 
