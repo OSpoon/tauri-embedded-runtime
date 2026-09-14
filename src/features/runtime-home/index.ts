@@ -1,1 +1,1 @@
-export { default as RuntimeHome } from "./RuntimeHome.vue";
+export { default as RuntimeHome } from "./RuntimeHome.vue"

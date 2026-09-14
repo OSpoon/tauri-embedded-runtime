@@ -59,7 +59,7 @@ Node.js 项目使用 `dependencies`，其余启动字段相同：
   "health_path": "/health",
   "demo_path": "/api/hello?name=developer",
   "package_name": "runtime-node-demo",
-  "dependencies": {"express": "4.21.2"},
+  "dependencies": { "express": "4.21.2" },
   "tools": []
 }
 ```

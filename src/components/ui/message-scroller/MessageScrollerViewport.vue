@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import { onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
-import { cn } from '@/lib/utils'
-import { SCROLL_KEYS, useMessageScrollerContext } from './useMessageScroller'
+import type { HTMLAttributes } from "vue"
+import { onBeforeUnmount, onMounted, useTemplateRef, watch } from "vue"
+import { cn } from "@/lib/utils"
+import { SCROLL_KEYS, useMessageScrollerContext } from "./useMessageScroller"
 
 const props = withDefaults(defineProps<{
-  class?: HTMLAttributes['class']
+  class?: HTMLAttributes["class"]
   preserveScrollOnPrepend?: boolean
 }>(), {
   preserveScrollOnPrepend: true,
@@ -21,7 +21,7 @@ const {
   userScrollIntent,
 } = useMessageScrollerContext()
 
-const viewportEl = useTemplateRef<HTMLElement>('viewport')
+const viewportEl = useTemplateRef<HTMLElement>("viewport")
 
 watch(() => props.preserveScrollOnPrepend, setPreserveScrollOnPrepend, { immediate: true })
 
@@ -36,7 +36,7 @@ let resizeFrame = 0
 onMounted(() => {
   const viewport = viewportEl.value
   setViewportElement(viewport)
-  if (!viewport || typeof ResizeObserver === 'undefined')
+  if (!viewport || typeof ResizeObserver === "undefined")
     return
   resizeObserver = new ResizeObserver(() => {
     window.cancelAnimationFrame(resizeFrame)

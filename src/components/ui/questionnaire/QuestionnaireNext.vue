@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import type { PrimitiveProps } from 'reka-ui'
-import type { HTMLAttributes } from 'vue'
-import type { ButtonVariants } from '@/components/ui/button'
-import { Primitive } from 'reka-ui'
-import { computed } from 'vue'
-import { cn } from '@/lib/utils'
-import { buttonVariants } from '@/components/ui/button'
-import { injectQuestionnaireRootContext } from './useQuestionnaire'
+import type { PrimitiveProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import type { ButtonVariants } from "@/components/ui/button"
+import { Primitive } from "reka-ui"
+import { computed } from "vue"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { injectQuestionnaireRootContext } from "./useQuestionnaire"
 
 const props = withDefaults(defineProps<PrimitiveProps & {
-  class?: HTMLAttributes['class']
+  class?: HTMLAttributes["class"]
   disabled?: boolean
-  size?: ButtonVariants['size']
-  variant?: ButtonVariants['variant']
+  size?: ButtonVariants["size"]
+  variant?: ButtonVariants["variant"]
 }>(), {
-  as: 'button',
+  as: "button",
   disabled: false,
-  size: 'default',
-  variant: 'default',
+  size: "default",
+  variant: "default",
 })
 
 const emits = defineEmits<{
@@ -27,10 +27,10 @@ const emits = defineEmits<{
 const root = injectQuestionnaireRootContext()
 
 const visible = computed(() => root.total.value > 1 && !root.last.value)
-const shortcut = computed(() => (visible.value && !props.disabled ? 'Enter' : null))
+const shortcut = computed(() => (visible.value && !props.disabled ? "Enter" : null))
 
 function handleClick(event: MouseEvent) {
-  emits('click', event)
+  emits("click", event)
 
   // `disabled` does not block clicks once `as` or `as-child` renders something
   // other than a button.

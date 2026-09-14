@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type { DrawerRootEmits, DrawerRootProps } from 'reka-ui'
-import { DrawerRoot, useForwardPropsEmits } from 'reka-ui'
+import type { DrawerRootEmits, DrawerRootProps } from "reka-ui"
+import { DrawerRoot, useForwardPropsEmits } from "reka-ui"
 
 const props = defineProps<DrawerRootProps>()
 

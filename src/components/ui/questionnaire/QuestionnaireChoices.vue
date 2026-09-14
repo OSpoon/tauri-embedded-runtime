@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { PrimitiveProps } from 'reka-ui'
-import type { HTMLAttributes } from 'vue'
-import { Primitive } from 'reka-ui'
-import { cn } from '@/lib/utils'
-import { injectQuestionnaireItemContext } from './useQuestionnaire'
+import type { PrimitiveProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import { Primitive } from "reka-ui"
+import { cn } from "@/lib/utils"
+import { injectQuestionnaireItemContext } from "./useQuestionnaire"
 
 const props = withDefaults(defineProps<PrimitiveProps & {
-  class?: HTMLAttributes['class']
+  class?: HTMLAttributes["class"]
 }>(), {
-  as: 'div',
+  as: "div",
 })
 
 const item = injectQuestionnaireItemContext()

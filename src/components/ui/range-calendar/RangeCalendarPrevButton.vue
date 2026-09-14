@@ -1,16 +1,16 @@
 <script lang="ts" setup>
-import type { RangeCalendarPrevProps } from 'reka-ui'
+import type { RangeCalendarPrevProps } from "reka-ui"
 
-import type { HTMLAttributes } from 'vue'
-import { ChevronLeftIcon } from '@lucide/vue'
-import { reactiveOmit } from '@vueuse/core'
-import { RangeCalendarPrev, useForwardProps } from 'reka-ui'
-import { cn } from '@/lib/utils'
-import { buttonVariants } from '@/components/ui/button'
+import type { HTMLAttributes } from "vue"
+import { ChevronLeftIcon } from "@lucide/vue"
+import { reactiveOmit } from "@vueuse/core"
+import { RangeCalendarPrev, useForwardProps } from "reka-ui"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
-const props = defineProps<RangeCalendarPrevProps & { class?: HTMLAttributes['class'] }>()
+const props = defineProps<RangeCalendarPrevProps & { class?: HTMLAttributes["class"] }>()
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, "class")
 
 const forwardedProps = useForwardProps(delegatedProps)
 </script>

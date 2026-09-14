@@ -1,19 +1,20 @@
-import { computed, onMounted, onUnmounted, ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { UnlistenFn } from "@tauri-apps/api/event"
 import type {
-  ProjectSnapshot,
   ProjectInfo,
+  ProjectSnapshot,
   RuntimeEvent,
   RuntimeSnapshot,
-  SetupPlanStep,
   ServiceName,
   ServiceSnapshot,
+  SetupPlanStep,
   WizardStep,
-} from "./types";
-import { createDefaultSetupPlan, createDefaultWizardSteps } from "./defaults";
+} from "./types"
+import { invoke } from "@tauri-apps/api/core"
+import { listen } from "@tauri-apps/api/event"
+import { computed, onMounted, onUnmounted, ref } from "vue"
+import { createDefaultSetupPlan, createDefaultWizardSteps } from "./defaults"
 
-const isTauri = "__TAURI_INTERNALS__" in window;
+const isTauri = "__TAURI_INTERNALS__" in window
 
 function initialSnapshot(): RuntimeSnapshot {
   return {
@@ -32,141 +33,157 @@ function initialSnapshot(): RuntimeSnapshot {
     operation_id: null,
     operation_status: "idle",
     issues: [],
-  };
+  }
 }
 
 export function useRuntimeSetup() {
-  const runtimeSnapshot = ref<RuntimeSnapshot>(initialSnapshot());
-  const runtimeProgress = ref(0);
-  const runtimeEvents = ref<RuntimeEvent[]>([]);
-  const services = ref<ServiceSnapshot[]>([]);
-  const projectCatalog = ref<ProjectInfo[]>([]);
-  const runtimeActionRunning = ref(false);
-  const setupStarted = ref(false);
-  const demoMessage = ref("完成检测并启动服务后，可以从这里调用两个本地服务。");
-  const setupPlan = ref<SetupPlanStep[]>(createDefaultSetupPlan());
-  const wizardSteps = ref<WizardStep[]>(createDefaultWizardSteps(setupPlan.value));
-  let stopRuntimeEvents: UnlistenFn | null = null;
+  const runtimeSnapshot = ref<RuntimeSnapshot>(initialSnapshot())
+  const runtimeProgress = ref(0)
+  const runtimeEvents = ref<RuntimeEvent[]>([])
+  const services = ref<ServiceSnapshot[]>([])
+  const projectCatalog = ref<ProjectInfo[]>([])
+  const runtimeActionRunning = ref(false)
+  const setupStarted = ref(false)
+  const demoMessage = ref("完成检测并启动服务后，可以从这里调用两个本地服务。")
+  const setupPlan = ref<SetupPlanStep[]>(createDefaultSetupPlan())
+  const wizardSteps = ref<WizardStep[]>(createDefaultWizardSteps(setupPlan.value))
+  let stopRuntimeEvents: UnlistenFn | null = null
 
   const runtimeStatusLabel = computed(() => {
     switch (runtimeSnapshot.value.status) {
-      case "ready": return "Ready";
-      case "missing": return "Needs setup";
-      case "corrupted": return "Needs repair";
-      case "outdated": return "Update available";
-      case "failed": return "Check failed";
-      default: return "Checking";
+      case "ready": return "Ready"
+      case "missing": return "Needs setup"
+      case "corrupted": return "Needs repair"
+      case "outdated": return "Update available"
+      case "failed": return "Check failed"
+      default: return "Checking"
     }
-  });
+  })
 
   const runtimeDotClass = computed(() => {
-    if (runtimeSnapshot.value.status === "ready") return "bg-emerald-500";
-    if (runtimeSnapshot.value.status === "checking") return "bg-amber-400";
-    return "bg-red-500";
-  });
+    if (runtimeSnapshot.value.status === "ready")
+      return "bg-emerald-500"
+    if (runtimeSnapshot.value.status === "checking")
+      return "bg-amber-400"
+    return "bg-red-500"
+  })
 
-  const runtimePathLabel = computed(() => runtimeSnapshot.value.runtime_root || "App data / runtime");
+  const runtimePathLabel = computed(() => runtimeSnapshot.value.runtime_root || "App data / runtime")
 
   function stepIdForEvent(event: RuntimeEvent) {
     if (event.phase === "cancel" || event.phase === "cancelled") {
-      return wizardSteps.value.find((step) => step.status === "active")?.id ?? "check";
+      return wizardSteps.value.find(step => step.status === "active")?.id ?? "check"
     }
-    if (wizardSteps.value.some((step) => step.id === event.phase)) return event.phase;
+    if (wizardSteps.value.some(step => step.id === event.phase))
+      return event.phase
     if (event.phase === "download" || event.phase === "extract") {
-      return wizardSteps.value.find((step) => step.status === "active")?.id ?? "check";
+      return wizardSteps.value.find(step => step.status === "active")?.id ?? "check"
     }
     if (event.phase === "services" || event.phase === "complete") {
-      return wizardSteps.value.find((step) => step.id === "verify")?.id
+      return wizardSteps.value.find(step => step.id === "verify")?.id
         ?? wizardSteps.value[wizardSteps.value.length - 1]?.id
-        ?? "check";
+        ?? "check"
     }
-    if (event.phase === "preflight") return "check";
+    if (event.phase === "preflight")
+      return "check"
     if (event.phase === "install") {
-      return wizardSteps.value.find((step) => step.status === "active")?.id ?? "check";
+      return wizardSteps.value.find(step => step.status === "active")?.id ?? "check"
     }
     if (event.status === "failed" || event.status === "cancelled") {
-      return wizardSteps.value.find((step) => step.status === "active" || step.status === "failed")?.id ?? "check";
+      return wizardSteps.value.find(step => step.status === "active" || step.status === "failed")?.id ?? "check"
     }
-    return "check";
+    return "check"
   }
 
   function updateWizard(event: RuntimeEvent) {
-    const targetId = stepIdForEvent(event);
-    const targetIndex = wizardSteps.value.findIndex((step) => step.id === targetId);
-    if (targetIndex < 0) return;
-    const failed = event.status === "failed" || event.status === "cancelled";
+    const targetId = stepIdForEvent(event)
+    const targetIndex = wizardSteps.value.findIndex(step => step.id === targetId)
+    if (targetIndex < 0)
+      return
+    const failed = event.status === "failed" || event.status === "cancelled"
     wizardSteps.value = wizardSteps.value.map((step, index) => {
-      if (index < targetIndex && step.status !== "failed") return { ...step, status: "complete" };
-      if (index !== targetIndex) return step;
-      if (failed) return { ...step, status: "failed" };
+      if (index < targetIndex && step.status !== "failed")
+        return { ...step, status: "complete" }
+      if (index !== targetIndex)
+        return step
+      if (failed)
+        return { ...step, status: "failed" }
       if (event.status === "completed" || event.status === "ready" || event.status === "cached") {
-        return { ...step, status: "complete" };
+        return { ...step, status: "complete" }
       }
-      return { ...step, status: "active" };
-    });
+      return { ...step, status: "active" }
+    })
   }
 
   function applyRuntimeEvent(event: RuntimeEvent) {
-    runtimeProgress.value = event.progress;
-    updateWizard(event);
+    runtimeProgress.value = event.progress
+    updateWizard(event)
     runtimeSnapshot.value = {
       ...runtimeSnapshot.value,
       status: event.status === "failed" || event.status === "cancelled" ? "failed" : "checking",
       message: event.message,
-    };
-    runtimeEvents.value = [...runtimeEvents.value, event].slice(-120);
+    }
+    runtimeEvents.value = [...runtimeEvents.value, event].slice(-120)
   }
 
   function markWizardComplete() {
-    wizardSteps.value = wizardSteps.value.map((step) => ({ ...step, status: "complete" }));
+    wizardSteps.value = wizardSteps.value.map(step => ({ ...step, status: "complete" }))
   }
 
   function resetWizard() {
-    wizardSteps.value = createDefaultWizardSteps(setupPlan.value);
+    wizardSteps.value = createDefaultWizardSteps(setupPlan.value)
   }
 
   async function loadSetupPlan() {
-    if (!isTauri) return;
+    if (!isTauri)
+      return
     try {
-      const plan = await invoke<SetupPlanStep[]>("runtime_setup_plan");
+      const plan = await invoke<SetupPlanStep[]>("runtime_setup_plan")
       if (Array.isArray(plan) && plan.length > 0) {
-        setupPlan.value = plan;
+        setupPlan.value = plan
         if (!setupStarted.value && !runtimeActionRunning.value) {
-          resetWizard();
+          resetWizard()
         }
       }
-    } catch {
+    }
+    catch {
       // Keep the bundled fallback plan when running an older backend binary.
     }
   }
 
   async function loadProjectCatalog() {
-    if (!isTauri) return;
+    if (!isTauri)
+      return
     try {
-      const catalog = await invoke<ProjectInfo[]>("runtime_projects_catalog");
-      if (Array.isArray(catalog)) projectCatalog.value = catalog;
-    } catch {
-      projectCatalog.value = [];
+      const catalog = await invoke<ProjectInfo[]>("runtime_projects_catalog")
+      if (Array.isArray(catalog))
+        projectCatalog.value = catalog
+    }
+    catch {
+      projectCatalog.value = []
     }
   }
 
   async function refreshServices() {
-    if (!isTauri) return;
+    if (!isTauri)
+      return
     try {
-      services.value = await invoke<ServiceSnapshot[]>("runtime_service_status");
-    } catch {
-      services.value = [];
+      services.value = await invoke<ServiceSnapshot[]>("runtime_service_status")
+    }
+    catch {
+      services.value = []
     }
   }
 
   async function bootstrapRuntime() {
-    if (runtimeActionRunning.value) return;
-    setupStarted.value = true;
-    runtimeEvents.value = [];
-    resetWizard();
-    runtimeActionRunning.value = true;
-    runtimeProgress.value = 3;
-    runtimeSnapshot.value = { ...runtimeSnapshot.value, status: "checking", message: "正在检查 manifest、generation 和解释器…" };
+    if (runtimeActionRunning.value)
+      return
+    setupStarted.value = true
+    runtimeEvents.value = []
+    resetWizard()
+    runtimeActionRunning.value = true
+    runtimeProgress.value = 3
+    runtimeSnapshot.value = { ...runtimeSnapshot.value, status: "checking", message: "正在检查 manifest、generation 和解释器…" }
 
     if (!isTauri) {
       const previewEvent: RuntimeEvent = {
@@ -176,38 +193,39 @@ export function useRuntimeSetup() {
         progress: 100,
         timestamp: Math.floor(Date.now() / 1000),
         output: "preview only",
-      };
-      runtimeProgress.value = 100;
+      }
+      runtimeProgress.value = 100
       runtimeSnapshot.value = {
         ...runtimeSnapshot.value,
         status: "ready",
         platform: "web preview",
         arch: "browser",
         message: "浏览器预览不会启动本地服务；请使用 Tauri App 验证私有运行时。",
-      };
-      runtimeEvents.value = [previewEvent];
-      markWizardComplete();
-      runtimeActionRunning.value = false;
-      return;
+      }
+      runtimeEvents.value = [previewEvent]
+      markWizardComplete()
+      runtimeActionRunning.value = false
+      return
     }
 
     try {
-      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_bootstrap");
-      runtimeProgress.value = 100;
-      markWizardComplete();
-      await refreshServices();
-    } catch (error) {
+      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_bootstrap")
+      runtimeProgress.value = 100
+      markWizardComplete()
+      await refreshServices()
+    }
+    catch (error) {
       runtimeSnapshot.value = {
         ...runtimeSnapshot.value,
         status: "failed",
         message: error instanceof Error ? error.message : String(error),
-      };
-      if (!wizardSteps.value.some((step) => step.status === "failed")) {
-        const activeIndex = wizardSteps.value.findIndex((step) => step.status === "active");
-        const fallbackIndex = activeIndex >= 0 ? activeIndex : wizardSteps.value.length - 1;
-        wizardSteps.value = wizardSteps.value.map((step, index) => index === fallbackIndex ? { ...step, status: "failed" } : step);
       }
-      const cancelled = String(error).includes("取消");
+      if (!wizardSteps.value.some(step => step.status === "failed")) {
+        const activeIndex = wizardSteps.value.findIndex(step => step.status === "active")
+        const fallbackIndex = activeIndex >= 0 ? activeIndex : wizardSteps.value.length - 1
+        wizardSteps.value = wizardSteps.value.map((step, index) => index === fallbackIndex ? { ...step, status: "failed" } : step)
+      }
+      const cancelled = String(error).includes("取消")
       runtimeEvents.value = [...runtimeEvents.value, {
         phase: "bootstrap",
         status: cancelled ? "cancelled" : "failed",
@@ -215,120 +233,130 @@ export function useRuntimeSetup() {
         progress: runtimeProgress.value,
         timestamp: Math.floor(Date.now() / 1000),
         output: cancelled ? "cancel requested" : "bootstrap exited with an error",
-      }].slice(-120);
-    } finally {
-      runtimeActionRunning.value = false;
+      }].slice(-120)
+    }
+    finally {
+      runtimeActionRunning.value = false
     }
   }
 
   async function cancelRuntime() {
-    if (!isTauri || !runtimeActionRunning.value) return;
+    if (!isTauri || !runtimeActionRunning.value)
+      return
     try {
-      await invoke("runtime_cancel");
+      await invoke("runtime_cancel")
       runtimeSnapshot.value = {
         ...runtimeSnapshot.value,
         message: "已发送取消请求，正在安全停止当前任务…",
-      };
-    } catch (error) {
+      }
+    }
+    catch (error) {
       runtimeSnapshot.value = {
         ...runtimeSnapshot.value,
         message: error instanceof Error ? error.message : String(error),
-      };
+      }
     }
   }
 
   async function repairRuntimeComponent(component: "python" | "node") {
-    if (!isTauri || runtimeActionRunning.value) return;
-    setupStarted.value = true;
-    runtimeEvents.value = [];
-    resetWizard();
-    runtimeActionRunning.value = true;
-    runtimeProgress.value = 3;
+    if (!isTauri || runtimeActionRunning.value)
+      return
+    setupStarted.value = true
+    runtimeEvents.value = []
+    resetWizard()
+    runtimeActionRunning.value = true
+    runtimeProgress.value = 3
     runtimeSnapshot.value = {
       ...runtimeSnapshot.value,
       status: "checking",
       message: `正在单独修复 ${component === "python" ? "Python" : "Node.js"} 运行时…`,
-    };
+    }
     try {
-      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_repair_component", { component });
-      runtimeProgress.value = 100;
-      markWizardComplete();
-      await refreshServices();
-    } catch (error) {
+      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_repair_component", { component })
+      runtimeProgress.value = 100
+      markWizardComplete()
+      await refreshServices()
+    }
+    catch (error) {
       runtimeSnapshot.value = {
         ...runtimeSnapshot.value,
         status: "failed",
         message: error instanceof Error ? error.message : String(error),
-      };
-    } finally {
-      runtimeActionRunning.value = false;
+      }
+    }
+    finally {
+      runtimeActionRunning.value = false
     }
   }
 
   async function repairProjectEnvironment(projectId: string) {
-    if (!isTauri || runtimeActionRunning.value) return;
-    setupStarted.value = true;
-    runtimeEvents.value = [];
-    resetWizard();
-    runtimeActionRunning.value = true;
-    runtimeProgress.value = 3;
+    if (!isTauri || runtimeActionRunning.value)
+      return
+    setupStarted.value = true
+    runtimeEvents.value = []
+    resetWizard()
+    runtimeActionRunning.value = true
+    runtimeProgress.value = 3
     runtimeSnapshot.value = {
       ...runtimeSnapshot.value,
       status: "checking",
       message: `正在修复 ${projectId} 项目环境…`,
-    };
+    }
     try {
-      await invoke<ProjectSnapshot>("runtime_project_repair", { projectId });
-      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_status");
-      runtimeProgress.value = 100;
-      markWizardComplete();
-      await refreshServices();
-    } catch (error) {
+      await invoke<ProjectSnapshot>("runtime_project_repair", { projectId })
+      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_status")
+      runtimeProgress.value = 100
+      markWizardComplete()
+      await refreshServices()
+    }
+    catch (error) {
       runtimeSnapshot.value = {
         ...runtimeSnapshot.value,
         status: "failed",
         message: error instanceof Error ? error.message : String(error),
-      };
-    } finally {
-      runtimeActionRunning.value = false;
+      }
+    }
+    finally {
+      runtimeActionRunning.value = false
     }
   }
 
   function serviceFor(name: ServiceName) {
-    return services.value.find((service) => service.name === name);
+    return services.value.find(service => service.name === name)
   }
 
   async function callDemoService(name: ServiceName) {
-    const service = serviceFor(name);
+    const service = serviceFor(name)
     if (!isTauri || !service?.running) {
-      demoMessage.value = "示例服务尚未启动，请先完成运行时安装或修复。";
-      return;
+      demoMessage.value = "示例服务尚未启动，请先完成运行时安装或修复。"
+      return
     }
-    const project = projectCatalog.value.find((item) => item.project_id === name);
+    const project = projectCatalog.value.find(item => item.project_id === name)
     if (!project?.demo_path) {
-      demoMessage.value = "该项目未配置示例调用入口。";
-      return;
+      demoMessage.value = "该项目未配置示例调用入口。"
+      return
     }
     try {
-      const response = await fetch(new URL(project.demo_path, `http://127.0.0.1:${service.port}`));
-      const payload = await response.json() as { message?: string };
-      demoMessage.value = payload.message ?? "服务响应成功。";
-    } catch (error) {
-      demoMessage.value = `服务调用失败：${error instanceof Error ? error.message : String(error)}`;
+      const response = await fetch(new URL(project.demo_path, `http://127.0.0.1:${service.port}`))
+      const payload = await response.json() as { message?: string }
+      demoMessage.value = payload.message ?? "服务响应成功。"
+    }
+    catch (error) {
+      demoMessage.value = `服务调用失败：${error instanceof Error ? error.message : String(error)}`
     }
   }
 
   onMounted(async () => {
     if (isTauri) {
-      stopRuntimeEvents = await listen<RuntimeEvent>("runtime://event", (event) => applyRuntimeEvent(event.payload));
-      await loadSetupPlan();
-      await loadProjectCatalog();
+      stopRuntimeEvents = await listen<RuntimeEvent>("runtime://event", event => applyRuntimeEvent(event.payload))
+      await loadSetupPlan()
+      await loadProjectCatalog()
     }
-  });
+  })
 
   onUnmounted(() => {
-    stopRuntimeEvents?.();
-  });
+    stopRuntimeEvents?.()
+  })
 
   return {
     isTauri,
@@ -350,5 +378,5 @@ export function useRuntimeSetup() {
     repairProjectEnvironment,
     cancelRuntime,
     callDemoService,
-  };
+  }
 }

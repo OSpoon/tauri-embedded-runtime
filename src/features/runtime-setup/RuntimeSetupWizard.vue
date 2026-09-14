@@ -1,160 +1,178 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import type { RuntimeEvent, RuntimeSnapshot, ServiceSnapshot, WizardStep } from "./types"
 import {
   ArrowRight,
   Check,
   CircleAlert,
   CloudDownload,
-  LockKeyhole,
-  LoaderCircle,
   ExternalLink,
+  LoaderCircle,
+  LockKeyhole,
   Wrench,
   XCircle,
-} from "@lucide/vue";
-import logoUrl from "@/assets/tauri-runtime-app-logo.png";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import type { RuntimeEvent, RuntimeSnapshot, ServiceSnapshot, WizardStep } from "./types";
+} from "@lucide/vue"
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
+import logoUrl from "@/assets/tauri-runtime-app-logo.png"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const props = defineProps<{
-  snapshot: RuntimeSnapshot;
-  progress: number;
-  events: RuntimeEvent[];
-  steps: WizardStep[];
-  actionRunning: boolean;
-  setupStarted: boolean;
-  services: ServiceSnapshot[];
-}>();
+  snapshot: RuntimeSnapshot
+  progress: number
+  events: RuntimeEvent[]
+  steps: WizardStep[]
+  actionRunning: boolean
+  setupStarted: boolean
+  services: ServiceSnapshot[]
+}>()
 
 const emit = defineEmits<{
-  run: [];
-  cancel: [];
-  openBusiness: [];
-}>();
+  run: []
+  cancel: []
+  openBusiness: []
+}>()
 
-const expandedStepId = ref<string | undefined>();
-const scrollAreaHost = ref<HTMLElement | null>(null);
-const followLatestLogs = ref(true);
-let logViewport: HTMLElement | null = null;
-const isLanding = computed(() => !props.setupStarted);
-const canOpenBusiness = computed(() => props.snapshot.status === "ready" && props.services.some((service) => service.running));
+const expandedStepId = ref<string | undefined>()
+const scrollAreaHost = ref<HTMLElement | null>(null)
+const followLatestLogs = ref(true)
+let logViewport: HTMLElement | null = null
+const isLanding = computed(() => !props.setupStarted)
+const canOpenBusiness = computed(() => props.snapshot.status === "ready" && props.services.some(service => service.running))
 const activeStepIndex = computed(() => {
-  const active = props.steps.findIndex((step) => step.status === "active" || step.status === "failed");
-  if (active >= 0) return active;
-  const pending = props.steps.findIndex((step) => step.status === "pending");
-  return pending >= 0 ? pending : props.steps.length - 1;
-});
-const activeStep = computed(() => props.steps[activeStepIndex.value]);
-const completedSteps = computed(() => props.steps.filter((step) => step.status === "complete").length);
-const stepSignature = computed(() => props.steps.map((step) => `${step.id}:${step.status}`).join("|"));
+  const active = props.steps.findIndex(step => step.status === "active" || step.status === "failed")
+  if (active >= 0)
+    return active
+  const pending = props.steps.findIndex(step => step.status === "pending")
+  return pending >= 0 ? pending : props.steps.length - 1
+})
+const activeStep = computed(() => props.steps[activeStepIndex.value])
+const completedSteps = computed(() => props.steps.filter(step => step.status === "complete").length)
+const stepSignature = computed(() => props.steps.map(step => `${step.id}:${step.status}`).join("|"))
 
 watch([stepSignature, () => props.actionRunning], ([, running]) => {
   if (!running) {
-    expandedStepId.value = undefined;
-    return;
+    expandedStepId.value = undefined
+    return
   }
-  followLatestLogs.value = true;
-  expandedStepId.value = props.steps.find((step) => step.status === "active")?.id;
-}, { immediate: true });
+  followLatestLogs.value = true
+  expandedStepId.value = props.steps.find(step => step.status === "active")?.id
+}, { immediate: true })
 
 function isNearLogBottom(viewport: HTMLElement) {
-  return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 24;
+  return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 24
 }
 
 function onLogViewportScroll() {
   if (logViewport) {
-    followLatestLogs.value = isNearLogBottom(logViewport);
+    followLatestLogs.value = isNearLogBottom(logViewport)
   }
 }
 
 function bindLogViewport() {
   const viewport = scrollAreaHost.value?.querySelector<HTMLElement>(
-    '[data-slot="scroll-area-viewport"]',
-  );
-  if (viewport === logViewport) return;
-  logViewport?.removeEventListener("scroll", onLogViewportScroll);
-  logViewport = viewport ?? null;
-  logViewport?.addEventListener("scroll", onLogViewportScroll, { passive: true });
+    "[data-slot=\"scroll-area-viewport\"]",
+  )
+  if (viewport === logViewport)
+    return
+  logViewport?.removeEventListener("scroll", onLogViewportScroll)
+  logViewport = viewport ?? null
+  logViewport?.addEventListener("scroll", onLogViewportScroll, { passive: true })
 }
 
 async function scrollLogsToLatest() {
-  await nextTick();
-  bindLogViewport();
-  if (!logViewport || !followLatestLogs.value) return;
-  logViewport.scrollTo({ top: logViewport.scrollHeight, behavior: "auto" });
+  await nextTick()
+  bindLogViewport()
+  if (!logViewport || !followLatestLogs.value)
+    return
+  logViewport.scrollTo({ top: logViewport.scrollHeight, behavior: "auto" })
 }
 
 watch(
   [() => props.events.length, expandedStepId, () => props.setupStarted],
   scrollLogsToLatest,
   { flush: "post" },
-);
+)
 
-onMounted(scrollLogsToLatest);
-onUnmounted(() => logViewport?.removeEventListener("scroll", onLogViewportScroll));
+onMounted(scrollLogsToLatest)
+onUnmounted(() => logViewport?.removeEventListener("scroll", onLogViewportScroll))
 
 function stepIdForEvent(event: RuntimeEvent) {
   if (event.phase === "cancel" || event.phase === "cancelled") {
-    return props.steps.find((step) => step.status === "active")?.id ?? "check";
+    return props.steps.find(step => step.status === "active")?.id ?? "check"
   }
-  if (props.steps.some((step) => step.id === event.phase)) return event.phase;
+  if (props.steps.some(step => step.id === event.phase))
+    return event.phase
   if (event.phase === "download" || event.phase === "extract") {
-    return props.steps.find((step) => step.status === "active")?.id ?? "check";
+    return props.steps.find(step => step.status === "active")?.id ?? "check"
   }
   if (event.phase === "services" || event.phase === "complete") {
-    return props.steps.find((step) => step.id === "verify")?.id
+    return props.steps.find(step => step.id === "verify")?.id
       ?? props.steps[props.steps.length - 1]?.id
-      ?? "check";
+      ?? "check"
   }
   if (event.phase === "install") {
-    return props.steps.find((step) => step.status === "active" || step.status === "failed")?.id ?? "check";
+    return props.steps.find(step => step.status === "active" || step.status === "failed")?.id ?? "check"
   }
   if (event.status === "failed" || event.status === "cancelled") {
-    return props.steps.find((step) => step.status === "active" || step.status === "failed")?.id ?? "check";
+    return props.steps.find(step => step.status === "active" || step.status === "failed")?.id ?? "check"
   }
-  return "check";
+  return "check"
 }
 
 function stepEvents(stepId: string) {
-  return props.events.filter((event) => stepIdForEvent(event) === stepId);
+  return props.events.filter(event => stepIdForEvent(event) === stepId)
 }
 
 function stepStatusLabel(status: WizardStep["status"]) {
-  if (status === "complete") return "完成";
-  if (status === "active") return "进行中";
-  if (status === "failed") return "失败";
-  return "等待中";
+  if (status === "complete")
+    return "完成"
+  if (status === "active")
+    return "进行中"
+  if (status === "failed")
+    return "失败"
+  return "等待中"
 }
 
 function stepStatusClass(status: WizardStep["status"]) {
-  if (status === "complete") return "text-emerald-600";
-  if (status === "active") return "text-blue-600";
-  if (status === "failed") return "text-red-500";
-  return "text-zinc-400";
+  if (status === "complete")
+    return "text-emerald-600"
+  if (status === "active")
+    return "text-blue-600"
+  if (status === "failed")
+    return "text-red-500"
+  return "text-zinc-400"
 }
 
 function eventClass(event: RuntimeEvent) {
-  if (event.status === "failed" || event.status === "cancelled") return "text-red-600";
-  if (event.status === "completed" || event.status === "ready" || event.status === "cached") return "text-emerald-600";
-  return "text-zinc-500";
+  if (event.status === "failed" || event.status === "cancelled")
+    return "text-red-600"
+  if (event.status === "completed" || event.status === "ready" || event.status === "cached")
+    return "text-emerald-600"
+  return "text-zinc-500"
 }
 
 function eventTime(event: RuntimeEvent) {
-  return new Date(event.timestamp * 1000).toLocaleTimeString([], { hour12: false });
+  return new Date(event.timestamp * 1000).toLocaleTimeString([], { hour12: false })
 }
 </script>
 
 <template>
   <main class="flex min-h-0 flex-1 flex-col bg-[#f8f9fd] text-zinc-900">
     <section v-if="isLanding" class="flex min-h-0 flex-1 flex-col items-center justify-center px-7 text-center">
-      <img :src="logoUrl" alt="Tauri Runtime App Logo" class="size-16 rounded-2xl shadow-lg shadow-blue-600/15" />
-      <p class="mt-5 text-[9px] font-semibold uppercase tracking-[0.26em] text-zinc-400">Hermes runtime installer</p>
-      <h1 class="mt-3 max-w-xl text-3xl font-semibold tracking-[-0.06em] text-blue-700 sm:text-4xl">运行环境检测</h1>
-      <p class="mt-4 max-w-lg text-sm leading-6 text-zinc-500">手动检查并准备应用私有目录中的 Python、Node.js 及各服务依赖。不会修改宿主机 PATH 或 shell 配置。</p>
+      <img :src="logoUrl" alt="Tauri Runtime App Logo" class="size-16 rounded-2xl shadow-lg shadow-blue-600/15">
+      <p class="mt-5 text-[9px] font-semibold uppercase tracking-[0.26em] text-zinc-400">
+        Hermes runtime installer
+      </p>
+      <h1 class="mt-3 max-w-xl text-3xl font-semibold tracking-[-0.06em] text-blue-700 sm:text-4xl">
+        运行环境检测
+      </h1>
+      <p class="mt-4 max-w-lg text-sm leading-6 text-zinc-500">
+        手动检查并准备应用私有目录中的 Python、Node.js 及各服务依赖。不会修改宿主机 PATH 或 shell 配置。
+      </p>
       <Button class="mt-7 h-10 rounded-lg bg-blue-600 px-5 text-sm text-white shadow-md shadow-blue-600/20 hover:bg-blue-700" @click="emit('run')">
         运行检测
         <ArrowRight class="size-4" />
@@ -173,7 +191,9 @@ function eventTime(event: RuntimeEvent) {
             <LoaderCircle v-if="props.actionRunning" class="size-4 shrink-0 animate-spin text-blue-600" />
             <Check v-else-if="props.snapshot.status === 'ready'" class="size-4 shrink-0 text-emerald-600" />
             <CircleAlert v-else class="size-4 shrink-0 text-amber-500" />
-            <h1 class="truncate text-base font-medium tracking-[-0.03em] text-zinc-800 sm:text-lg">{{ props.actionRunning ? activeStep?.title : props.snapshot.status === 'ready' ? '运行环境已就绪' : activeStep?.title }}</h1>
+            <h1 class="truncate text-base font-medium tracking-[-0.03em] text-zinc-800 sm:text-lg">
+              {{ props.actionRunning ? activeStep?.title : props.snapshot.status === 'ready' ? '运行环境已就绪' : activeStep?.title }}
+            </h1>
           </div>
           <span class="shrink-0 text-xs text-zinc-400">{{ completedSteps }} of {{ props.steps.length }} steps</span>
         </div>
@@ -195,7 +215,9 @@ function eventTime(event: RuntimeEvent) {
                         <span v-else class="size-1.5 rounded-full bg-zinc-300" />
                       </span>
                       <span class="min-w-0 flex-1 text-xs font-medium sm:text-sm" :class="step.status === 'pending' ? 'text-zinc-400' : 'text-zinc-700'">{{ step.title }}</span>
-                      <Badge variant="outline" class="mr-1 h-5 px-1.5 text-[9px] font-normal" :class="stepStatusClass(step.status)">{{ stepStatusLabel(step.status) }}</Badge>
+                      <Badge variant="outline" class="mr-1 h-5 px-1.5 text-[9px] font-normal" :class="stepStatusClass(step.status)">
+                        {{ stepStatusLabel(step.status) }}
+                      </Badge>
                     </AccordionTrigger>
 
                     <AccordionContent class="px-0">
@@ -203,7 +225,9 @@ function eventTime(event: RuntimeEvent) {
                         <template v-if="stepEvents(step.id).length">
                           <div v-for="(event, eventIndex) in stepEvents(step.id)" :key="`${event.timestamp}-${eventIndex}`" class="font-mono text-[10px] leading-5" :class="eventClass(event)">
                             <div><span class="text-zinc-300">[{{ eventTime(event) }}]</span> {{ event.message }}</div>
-                            <div v-if="event.output" class="truncate pl-3 text-zinc-400" :title="event.output">↳ {{ event.output }}</div>
+                            <div v-if="event.output" class="truncate pl-3 text-zinc-400" :title="event.output">
+                              ↳ {{ event.output }}
+                            </div>
                           </div>
                         </template>
                         <p v-else class="text-[10px] text-zinc-400">
@@ -221,7 +245,9 @@ function eventTime(event: RuntimeEvent) {
 
       <footer class="flex shrink-0 justify-end gap-3 border-t border-[#d9def0] bg-[#f8f9fd] px-5 py-3 sm:px-7 lg:px-9">
         <div class="flex items-center gap-2">
-          <Button v-if="props.actionRunning" variant="outline" class="h-8 border-blue-200 bg-white px-4 text-xs text-zinc-700" @click="emit('cancel')">取消</Button>
+          <Button v-if="props.actionRunning" variant="outline" class="h-8 border-blue-200 bg-white px-4 text-xs text-zinc-700" @click="emit('cancel')">
+            取消
+          </Button>
           <template v-else>
             <Button v-if="canOpenBusiness" variant="outline" class="h-8 border-blue-200 bg-white px-4 text-xs text-blue-700" @click="emit('openBusiness')">
               打开业务首页

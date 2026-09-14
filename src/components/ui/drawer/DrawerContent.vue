@@ -1,24 +1,24 @@
 <script lang="ts" setup>
-import type { DrawerContentEmits, DrawerContentProps } from 'reka-ui'
-import type { HTMLAttributes } from 'vue'
-import { reactiveOmit } from '@vueuse/core'
+import type { DrawerContentEmits, DrawerContentProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import { reactiveOmit } from "@vueuse/core"
 import {
   DrawerContent,
   DrawerHandle,
   DrawerPortal,
   useForwardPropsEmits,
-} from 'reka-ui'
-import { cn } from '@/lib/utils'
-import DrawerOverlay from './DrawerOverlay.vue'
+} from "reka-ui"
+import { cn } from "@/lib/utils"
+import DrawerOverlay from "./DrawerOverlay.vue"
 
 defineOptions({
   inheritAttrs: false,
 })
 
-const props = defineProps<DrawerContentProps & { class?: HTMLAttributes['class'] }>()
+const props = defineProps<DrawerContentProps & { class?: HTMLAttributes["class"] }>()
 const emits = defineEmits<DrawerContentEmits>()
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, "class")
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>

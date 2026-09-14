@@ -1,13 +1,13 @@
-import type { ComputedRef, InjectionKey, Ref, ShallowRef } from 'vue'
-import { computed, getCurrentScope, inject, onMounted, onScopeDispose, provide, shallowRef, watch } from 'vue'
+import type { ComputedRef, InjectionKey, Ref, ShallowRef } from "vue"
+import { computed, getCurrentScope, inject, onMounted, onScopeDispose, provide, shallowRef, watch } from "vue"
 
 // -----------------------------------------------------------------------------
 // Public types
 // -----------------------------------------------------------------------------
 
-export type MessageScrollerDefaultScrollPosition = 'start' | 'end' | 'last-anchor'
-export type MessageScrollerButtonDirection = 'start' | 'end'
-export type MessageScrollerScrollAlign = 'start' | 'center' | 'end' | 'nearest'
+export type MessageScrollerDefaultScrollPosition = "start" | "end" | "last-anchor"
+export type MessageScrollerButtonDirection = "start" | "end"
+export type MessageScrollerScrollAlign = "start" | "center" | "end" | "nearest"
 
 export interface MessageScrollerScrollOptions {
   align?: MessageScrollerScrollAlign
@@ -44,13 +44,13 @@ const SCROLL_EPSILON = 0.5
 const AUTOSCROLLING_TIMEOUT = 180
 
 const SCROLL_KEYS = new Set([
-  'ArrowDown',
-  'ArrowUp',
-  'End',
-  'Home',
-  'PageDown',
-  'PageUp',
-  ' ',
+  "ArrowDown",
+  "ArrowUp",
+  "End",
+  "Home",
+  "PageDown",
+  "PageUp",
+  " ",
 ])
 
 const EMPTY_SCROLLABLE: MessageScrollerScrollable = { start: false, end: false }
@@ -61,10 +61,10 @@ const EMPTY_VISIBILITY: MessageScrollerVisibilityState = {
 }
 
 type Mode
-  = | 'following-bottom'
-    | 'free-scrolling'
-    | 'anchored-to-message'
-    | 'settling-jump'
+  = | "following-bottom"
+    | "free-scrolling"
+    | "anchored-to-message"
+    | "settling-jump"
 
 interface PrependRestore {
   element: HTMLElement
@@ -121,7 +121,7 @@ function getRowGap(element: HTMLElement | null): number {
   if (!element)
     return 0
   const style = window.getComputedStyle(element)
-  const gap = style.rowGap === 'normal' ? style.gap : style.rowGap
+  const gap = style.rowGap === "normal" ? style.gap : style.rowGap
   return parseNumber(gap)
 }
 
@@ -202,13 +202,13 @@ function computeScrollTopForElement({
   const height = element.getBoundingClientRect().height
   const padding = getContentPadding(spacer)
 
-  if (align === 'center') {
+  if (align === "center") {
     const available = Math.max(0, viewport.clientHeight - padding.start - padding.end)
     return offsetTop - padding.start - (available - height) / 2 - scrollMargin
   }
-  if (align === 'end')
+  if (align === "end")
     return offsetTop - viewport.clientHeight + height + padding.end + scrollMargin
-  if (align === 'nearest') {
+  if (align === "nearest") {
     const bottom = offsetTop + height
     const visibleTop = viewport.scrollTop + padding.start
     const visibleBottom = viewport.scrollTop + viewport.clientHeight - padding.end
@@ -260,7 +260,7 @@ function computeVisibility({
     return EMPTY_VISIBILITY
   const viewportRect = viewport.getBoundingClientRect()
   const anchorLine = viewportRect.top + scrollMargin + scrollPreviousItemPeek
-  const noIntersectionObserver = typeof IntersectionObserver === 'undefined'
+  const noIntersectionObserver = typeof IntersectionObserver === "undefined"
   const visible: string[] = []
   let currentAnchorId: string | null = null
 
@@ -268,7 +268,7 @@ function computeVisibility({
     const messageId = child.dataset.messageId
     if (!messageId)
       continue
-    const isAnchor = child.dataset.scrollAnchor === 'true'
+    const isAnchor = child.dataset.scrollAnchor === "true"
     const rect = isAnchor || noIntersectionObserver ? child.getBoundingClientRect() : null
     const isVisible = noIntersectionObserver && rect
       ? rect.bottom > anchorLine && rect.top < viewportRect.bottom
@@ -290,7 +290,7 @@ function findFirstAnchorFrom(
 ): HTMLElement | null {
   for (let i = startIndex; i < elements.length; i++) {
     const element = elements[i]
-    if (element?.dataset.scrollAnchor === 'true')
+    if (element?.dataset.scrollAnchor === "true")
       return element
   }
   return null
@@ -301,7 +301,7 @@ function findFirstUnhandledAnchor(
   handled: WeakSet<HTMLElement>,
 ): HTMLElement | null {
   for (const element of elements) {
-    if (element.dataset.scrollAnchor === 'true' && !handled.has(element))
+    if (element.dataset.scrollAnchor === "true" && !handled.has(element))
       return element
   }
   return null
@@ -313,7 +313,7 @@ function hasMultipleAnchorsFrom(
 ): boolean {
   let count = 0
   for (let i = startIndex; i < elements.length; i++) {
-    if (elements[i]?.dataset.scrollAnchor === 'true') {
+    if (elements[i]?.dataset.scrollAnchor === "true") {
       count += 1
       if (count > 1)
         return true
@@ -325,7 +325,7 @@ function hasMultipleAnchorsFrom(
 function findLastAnchor(elements: HTMLElement[]): HTMLElement | null {
   for (let i = elements.length - 1; i >= 0; i--) {
     const element = elements[i]
-    if (element?.dataset.scrollAnchor === 'true')
+    if (element?.dataset.scrollAnchor === "true")
       return element
   }
   return null
@@ -381,12 +381,12 @@ export type RegisterMessage = (
   previousElement: HTMLElement | null,
 ) => void
 
-const CONTEXT_KEY: InjectionKey<MessageScrollerContext> = Symbol('MessageScrollerContext')
-const REGISTER_KEY: InjectionKey<RegisterMessage> = Symbol('MessageScrollerRegister')
+const CONTEXT_KEY: InjectionKey<MessageScrollerContext> = Symbol("MessageScrollerContext")
+const REGISTER_KEY: InjectionKey<RegisterMessage> = Symbol("MessageScrollerRegister")
 
 function createEngine(props: MessageScrollerProviderProps) {
   const autoScroll = () => props.autoScroll ?? false
-  const defaultScrollPosition = () => props.defaultScrollPosition ?? 'end'
+  const defaultScrollPosition = () => props.defaultScrollPosition ?? "end"
   const scrollEdgeThreshold = () => props.scrollEdgeThreshold ?? DEFAULT_SCROLL_EDGE_THRESHOLD
   const scrollPreviousItemPeek = () => props.scrollPreviousItemPeek ?? DEFAULT_SCROLL_PREVIOUS_ITEM_PEEK
   const scrollMargin = () => props.scrollMargin ?? DEFAULT_SCROLL_MARGIN
@@ -396,7 +396,7 @@ function createEngine(props: MessageScrollerProviderProps) {
   let spacer: HTMLElement | null = null
   let spacerGap = 0
   let spacerHeight = 0
-  let mode: Mode = autoScroll() ? 'following-bottom' : 'free-scrolling'
+  let mode: Mode = autoScroll() ? "following-bottom" : "free-scrolling"
   let streamingTurn: HTMLElement | null = null
   let firstItem: HTMLElement | null = null
   let itemCount = 0
@@ -419,9 +419,9 @@ function createEngine(props: MessageScrollerProviderProps) {
   const scrollable = shallowRef<MessageScrollerScrollable>(EMPTY_SCROLLABLE)
   const visibility = shallowRef<MessageScrollerVisibilityState>(EMPTY_VISIBILITY)
   const scrollableAttr = computed(() => {
-    const attr = [scrollable.value.start && 'start', scrollable.value.end && 'end']
+    const attr = [scrollable.value.start && "start", scrollable.value.end && "end"]
       .filter(Boolean)
-      .join(' ')
+      .join(" ")
     return attr || undefined
   })
 
@@ -434,18 +434,18 @@ function createEngine(props: MessageScrollerProviderProps) {
     if (
       autoScroll()
       && !next.end
-      && mode !== 'settling-jump'
-      && mode !== 'anchored-to-message'
+      && mode !== "settling-jump"
+      && mode !== "anchored-to-message"
     ) {
-      mode = 'following-bottom'
+      mode = "following-bottom"
     }
     else if (
-      mode === 'following-bottom'
+      mode === "following-bottom"
       && next.end
       && scrolledUp
       && !autoscrolling.value
     ) {
-      mode = 'free-scrolling'
+      mode = "free-scrolling"
     }
   }
 
@@ -457,7 +457,7 @@ function createEngine(props: MessageScrollerProviderProps) {
       viewport,
     })
     updateModeFromScroll(measured)
-    const next = mode === 'following-bottom'
+    const next = mode === "following-bottom"
       ? { ...measured, end: false }
       : measured
     if (!scrollableEqual(scrollable.value, next))
@@ -523,13 +523,13 @@ function createEngine(props: MessageScrollerProviderProps) {
       spacerHeight = next
       spacer.hidden = next === 0
       spacer.style.height = `${next}px`
-      spacer.style.marginTop = next > 0 ? `${-spacerGap}px` : ''
+      spacer.style.marginTop = next > 0 ? `${-spacerGap}px` : ""
     }
   }
 
   function scrollTo(
     top: number,
-    { behavior = 'auto', autoscrolling: isAutoscrolling = false }: { behavior?: ScrollBehavior, autoscrolling?: boolean } = {},
+    { behavior = "auto", autoscrolling: isAutoscrolling = false }: { behavior?: ScrollBehavior, autoscrolling?: boolean } = {},
   ) {
     if (!viewport)
       return
@@ -545,23 +545,23 @@ function createEngine(props: MessageScrollerProviderProps) {
     scheduleStateCommit()
   }
 
-  function scrollToStart({ behavior = 'auto' }: { behavior?: ScrollBehavior } = {}): boolean {
+  function scrollToStart({ behavior = "auto" }: { behavior?: ScrollBehavior } = {}): boolean {
     if (!viewport)
       return false
     setSpacerHeight(0)
     streamingTurn = null
-    mode = 'free-scrolling'
+    mode = "free-scrolling"
     scrollTo(0, { behavior })
     scheduleVisibilitySync()
     return true
   }
 
-  function scrollToEnd({ behavior = 'auto' }: { behavior?: ScrollBehavior } = {}): boolean {
+  function scrollToEnd({ behavior = "auto" }: { behavior?: ScrollBehavior } = {}): boolean {
     if (!viewport)
       return false
     setSpacerHeight(0)
     streamingTurn = null
-    mode = autoScroll() ? 'following-bottom' : 'free-scrolling'
+    mode = autoScroll() ? "following-bottom" : "free-scrolling"
     scrollTo(maxScrollTop(viewport), { autoscrolling: true, behavior })
     scheduleVisibilitySync()
     return true
@@ -570,8 +570,8 @@ function createEngine(props: MessageScrollerProviderProps) {
   function scrollToElement(
     element: HTMLElement,
     {
-      align = 'start',
-      behavior = 'auto',
+      align = "start",
+      behavior = "auto",
       scrollMargin: margin = scrollMargin(),
     }: MessageScrollerScrollOptions = {},
     { keepPreviousPeek = false }: { keepPreviousPeek?: boolean } = {},
@@ -592,7 +592,7 @@ function createEngine(props: MessageScrollerProviderProps) {
       viewport,
     }))
     prependRestore = { element, viewportTop: getRelativeTop(element, viewport) }
-    mode = keepPreviousPeek ? 'anchored-to-message' : 'settling-jump'
+    mode = keepPreviousPeek ? "anchored-to-message" : "settling-jump"
     streamingTurn = keepPreviousPeek ? element : null
     scrollTo(targetScrollTop, { behavior })
     scheduleVisibilitySync()
@@ -600,9 +600,9 @@ function createEngine(props: MessageScrollerProviderProps) {
   }
 
   function reanchorToAnchoredMessage(): boolean {
-    if (!streamingTurn || !streamingTurn.isConnected || mode !== 'anchored-to-message')
+    if (!streamingTurn || !streamingTurn.isConnected || mode !== "anchored-to-message")
       return false
-    return scrollToElement(streamingTurn, { align: 'start' }, { keepPreviousPeek: true })
+    return scrollToElement(streamingTurn, { align: "start" }, { keepPreviousPeek: true })
   }
 
   function scrollToMessage(
@@ -681,25 +681,25 @@ function createEngine(props: MessageScrollerProviderProps) {
       return false
     const position = defaultScrollPosition()
     let applied = false
-    if (position === 'last-anchor') {
+    if (position === "last-anchor") {
       const lastAnchor = content && viewport
         ? findLastAnchor(getMessageChildren(content, spacer))
         : null
       if (!content || !viewport || !lastAnchor) {
-        applied = scrollToEnd({ behavior: 'auto' })
+        applied = scrollToEnd({ behavior: "auto" })
       }
       else {
         const anchorOffset = getElementOffsetTop(lastAnchor, viewport)
         const contentHeight = measureContentHeight({ content, spacer, viewport })
         applied = contentHeight - anchorOffset <= viewport.clientHeight
-          ? scrollToEnd({ behavior: 'auto' })
-          : scrollToElement(lastAnchor, { align: 'start' }, { keepPreviousPeek: true })
+          ? scrollToEnd({ behavior: "auto" })
+          : scrollToElement(lastAnchor, { align: "start" }, { keepPreviousPeek: true })
       }
     }
     else {
-      applied = position === 'end'
-        ? scrollToEnd({ behavior: 'auto' })
-        : scrollToStart({ behavior: 'auto' })
+      applied = position === "end"
+        ? scrollToEnd({ behavior: "auto" })
+        : scrollToStart({ behavior: "auto" })
     }
     if (applied) {
       defaultScrollPositionApplied = true
@@ -720,7 +720,7 @@ function createEngine(props: MessageScrollerProviderProps) {
     if (previousCount === 0) {
       if (
         applyDefaultScrollPosition()
-        || (children.length > 0 && autoScroll() && scrollToEnd({ behavior: 'auto' }))
+        || (children.length > 0 && autoScroll() && scrollToEnd({ behavior: "auto" }))
       ) {
         return
       }
@@ -738,13 +738,13 @@ function createEngine(props: MessageScrollerProviderProps) {
       if (anchor) {
         if (
           autoScroll()
-          && mode === 'following-bottom'
+          && mode === "following-bottom"
           && hasMultipleAnchorsFrom(children, previousCount)
         ) {
-          scrollToEnd({ behavior: 'auto' })
+          scrollToEnd({ behavior: "auto" })
           return
         }
-        scrollToElement(anchor, { align: 'start' }, { keepPreviousPeek: true })
+        scrollToElement(anchor, { align: "start" }, { keepPreviousPeek: true })
         handledScrollAnchors.add(anchor)
         return
       }
@@ -752,13 +752,13 @@ function createEngine(props: MessageScrollerProviderProps) {
     if (children.length === previousCount) {
       const anchor = findFirstUnhandledAnchor(children, handledScrollAnchors)
       if (anchor) {
-        scrollToElement(anchor, { align: 'start' }, { keepPreviousPeek: true })
+        scrollToElement(anchor, { align: "start" }, { keepPreviousPeek: true })
         handledScrollAnchors.add(anchor)
         return
       }
     }
-    if (mode === 'following-bottom' && autoScroll()) {
-      scrollToEnd({ behavior: 'auto' })
+    if (mode === "following-bottom" && autoScroll()) {
+      scrollToEnd({ behavior: "auto" })
     }
     else {
       commitScrollState()
@@ -780,8 +780,8 @@ function createEngine(props: MessageScrollerProviderProps) {
   }
 
   function handleResize() {
-    if (mode === 'following-bottom' && autoScroll()) {
-      scrollToEnd({ behavior: 'auto' })
+    if (mode === "following-bottom" && autoScroll()) {
+      scrollToEnd({ behavior: "auto" })
       return
     }
     const previousSpacerHeight = spacerHeight
@@ -793,7 +793,7 @@ function createEngine(props: MessageScrollerProviderProps) {
       // transition keeps a turn taller than the viewport (placed with no
       // spacer) held instead of yanked to the end.
       if (autoScroll() && previousSpacerHeight > 0 && spacerHeight === 0)
-        scrollToEnd({ behavior: 'auto' })
+        scrollToEnd({ behavior: "auto" })
       return
     }
     scheduleStateCommit()
@@ -805,7 +805,7 @@ function createEngine(props: MessageScrollerProviderProps) {
   function observeVisibility() {
     if (!viewport || visibilityConsumers === 0)
       return
-    if (typeof IntersectionObserver === 'undefined') {
+    if (typeof IntersectionObserver === "undefined") {
       scheduleVisibilitySync()
       return
     }
@@ -881,12 +881,12 @@ function createEngine(props: MessageScrollerProviderProps) {
 
   function userScrollIntent() {
     if (
-      mode === 'following-bottom'
-      || mode === 'anchored-to-message'
-      || mode === 'settling-jump'
+      mode === "following-bottom"
+      || mode === "anchored-to-message"
+      || mode === "settling-jump"
     ) {
       streamingTurn = null
-      mode = 'free-scrolling'
+      mode = "free-scrolling"
     }
   }
 
@@ -918,8 +918,8 @@ function createEngine(props: MessageScrollerProviderProps) {
   }
 
   function onAutoScrollChange() {
-    if (autoScroll() && mode === 'following-bottom' && itemCount > 0) {
-      scrollToEnd({ behavior: 'auto' })
+    if (autoScroll() && mode === "following-bottom" && itemCount > 0) {
+      scrollToEnd({ behavior: "auto" })
       return
     }
     commitScrollState()
@@ -1002,14 +1002,14 @@ export function provideMessageScroller(props: MessageScrollerProviderProps) {
 export function useMessageScrollerContext(): MessageScrollerContext {
   const context = inject(CONTEXT_KEY, null)
   if (!context)
-    throw new Error('useMessageScroller must be used within a MessageScroller.')
+    throw new Error("useMessageScroller must be used within a MessageScroller.")
   return context
 }
 
 export function useMessageScrollerRegister(): RegisterMessage {
   const register = inject(REGISTER_KEY, null)
   if (!register)
-    throw new Error('MessageScrollerItem must be used within a MessageScroller.')
+    throw new Error("MessageScrollerItem must be used within a MessageScroller.")
   return register
 }
 

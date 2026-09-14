@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import { onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
-import { cn } from '@/lib/utils'
-import { useMessageScrollerRegister } from './useMessageScroller'
+import type { HTMLAttributes } from "vue"
+import { onBeforeUnmount, onMounted, useTemplateRef, watch } from "vue"
+import { cn } from "@/lib/utils"
+import { useMessageScrollerRegister } from "./useMessageScroller"
 
 const props = withDefaults(defineProps<{
   messageId?: string
   scrollAnchor?: boolean
-  class?: HTMLAttributes['class']
+  class?: HTMLAttributes["class"]
 }>(), {
   scrollAnchor: false,
 })
 
 const register = useMessageScrollerRegister()
 
-const itemEl = useTemplateRef<HTMLElement>('item')
+const itemEl = useTemplateRef<HTMLElement>("item")
 
 onMounted(() => {
   if (props.messageId && itemEl.value)

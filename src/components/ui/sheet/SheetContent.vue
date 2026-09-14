@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import type { DialogContentEmits, DialogContentProps } from 'reka-ui'
+import type { DialogContentEmits, DialogContentProps } from "reka-ui"
 
-import type { HTMLAttributes } from 'vue'
-import { XIcon } from '@lucide/vue'
-import { reactiveOmit } from '@vueuse/core'
+import type { HTMLAttributes } from "vue"
+import { XIcon } from "@lucide/vue"
+import { reactiveOmit } from "@vueuse/core"
 import {
   DialogClose,
   DialogContent,
   DialogPortal,
   useForwardPropsEmits,
-} from 'reka-ui'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import SheetOverlay from './SheetOverlay.vue'
+} from "reka-ui"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import SheetOverlay from "./SheetOverlay.vue"
 
 interface SheetContentProps extends DialogContentProps {
-  class?: HTMLAttributes['class']
-  side?: 'top' | 'right' | 'bottom' | 'left'
+  class?: HTMLAttributes["class"]
+  side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }
 
@@ -25,12 +25,12 @@ defineOptions({
 })
 
 const props = withDefaults(defineProps<SheetContentProps>(), {
-  side: 'right',
+  side: "right",
   showCloseButton: true,
 })
 const emits = defineEmits<DialogContentEmits>()
 
-const delegatedProps = reactiveOmit(props, 'class', 'side', 'showCloseButton')
+const delegatedProps = reactiveOmit(props, "class", "side", "showCloseButton")
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>

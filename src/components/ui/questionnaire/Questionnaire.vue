@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
+import type { HTMLAttributes } from "vue"
 import type {
   ItemRegistration,
   QuestionnaireItemDefinition,
   QuestionnaireShortcutMode,
-} from './useQuestionnaire'
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
-import { cn } from '@/lib/utils'
+} from "./useQuestionnaire"
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue"
+import { cn } from "@/lib/utils"
 import {
   compareDocumentOrder,
   createQuestionnaireCollection,
@@ -16,10 +16,10 @@ import {
   isRadioTarget,
   isTextEntryTarget,
   provideQuestionnaireRootContext,
-} from './useQuestionnaire'
+} from "./useQuestionnaire"
 
 const props = withDefaults(defineProps<{
-  class?: HTMLAttributes['class']
+  class?: HTMLAttributes["class"]
   /** Item shown first. Ignored when `item` is provided. */
   defaultItem?: string
   /** Controlled active item. Use with `v-model:item`. */
@@ -35,14 +35,14 @@ const props = withDefaults(defineProps<{
 })
 
 const emits = defineEmits<{
-  'reset': [event: Event]
-  'submit': [event: Event]
-  'update:item': [item: string]
+  "reset": [event: Event]
+  "submit": [event: Event]
+  "update:item": [item: string]
 }>()
 
 interface PendingFocus {
   name: string
-  target: 'invalid' | 'item'
+  target: "invalid" | "item"
 }
 
 const rootElement = ref<HTMLFormElement | null>(null)
@@ -103,7 +103,7 @@ const activeItemStatus = computed(() => {
     return null
   }
 
-  return activeItem.value?.status() ?? (activeItemName.value ? 'unanswered' : null)
+  return activeItem.value?.status() ?? (activeItemName.value ? "unanswered" : null)
 })
 const orderedRegistrations = computed(() => {
   if (!collection.value) {
@@ -121,7 +121,7 @@ const current = computed(() => (currentIndex.value < 0 ? 0 : currentIndex.value 
 const first = computed(() => total.value > 0 && currentIndex.value === 0)
 const last = computed(() => total.value > 0 && currentIndex.value === total.value - 1)
 
-function setItem(nextItem: string, focusTarget: PendingFocus['target'] = 'item') {
+function setItem(nextItem: string, focusTarget: PendingFocus["target"] = "item") {
   if (nextItem === activeItemName.value) {
     return
   }
@@ -132,7 +132,7 @@ function setItem(nextItem: string, focusTarget: PendingFocus['target'] = 'item')
     uncontrolledItem.value = nextItem
   }
 
-  emits('update:item', nextItem)
+  emits("update:item", nextItem)
 }
 
 function registerItem(registration: ItemRegistration) {
@@ -148,7 +148,7 @@ function registerItem(registration: ItemRegistration) {
   }
 }
 
-function setItemAt(index: number, focusTarget: PendingFocus['target'] = 'item') {
+function setItemAt(index: number, focusTarget: PendingFocus["target"] = "item") {
   const nextItem = logicalItems.value[index]
 
   if (nextItem) {
@@ -213,7 +213,7 @@ function skipCurrent() {
 }
 
 function handleReset(event: Event) {
-  emits('reset', event)
+  emits("reset", event)
 
   if (event.defaultPrevented) {
     return
@@ -238,7 +238,7 @@ function handleSubmit(event: Event) {
 
   if (firstInvalidItem) {
     event.preventDefault()
-    setItem(firstInvalidItem.name, 'invalid')
+    setItem(firstInvalidItem.name, "invalid")
 
     if (firstInvalidItem.name === activeItemName.value) {
       firstInvalidItem.focusInvalid()
@@ -248,7 +248,7 @@ function handleSubmit(event: Event) {
     return
   }
 
-  emits('submit', event)
+  emits("submit", event)
 }
 
 function handleKeydown(event: KeyboardEvent) {
@@ -262,7 +262,7 @@ function handleKeydown(event: KeyboardEvent) {
     return
   }
 
-  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
+  if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
     event.preventDefault()
 
     if (!event.repeat) {
@@ -276,10 +276,10 @@ function handleKeydown(event: KeyboardEvent) {
     return
   }
 
-  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+  if (event.key === "ArrowUp" || event.key === "ArrowDown") {
     const moved = activeItem.value.moveAnswerFocus(
       event.target,
-      event.key === 'ArrowDown' ? 'next' : 'previous',
+      event.key === "ArrowDown" ? "next" : "previous",
     )
 
     if (moved) {
@@ -289,7 +289,7 @@ function handleKeydown(event: KeyboardEvent) {
   }
 
   if (
-    (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+    (event.key === "ArrowLeft" || event.key === "ArrowRight")
     && !isTextEntryTarget(event.target)
     && !isRadioTarget(event.target)
   ) {
@@ -299,17 +299,17 @@ function handleKeydown(event: KeyboardEvent) {
       return
     }
 
-    if (event.key === 'ArrowLeft') {
+    if (event.key === "ArrowLeft") {
       goPrevious()
     }
-    else if (activeItem.value.status() !== 'unanswered') {
+    else if (activeItem.value.status() !== "unanswered") {
       goNext()
     }
 
     return
   }
 
-  if (event.key === 'Enter') {
+  if (event.key === "Enter") {
     const answer = activeItem.value.getAnswerByElement(event.target)
 
     if (!answer) {
@@ -344,7 +344,7 @@ function handleKeydown(event: KeyboardEvent) {
 
   answer.element.focus()
 
-  if (answer.type === 'choice') {
+  if (answer.type === "choice") {
     answer.element.click()
   }
 }
@@ -386,7 +386,7 @@ watch(
       return
     }
 
-    if (focus.target === 'invalid') {
+    if (focus.target === "invalid") {
       activeItem.value?.focusInvalid()
     }
     else {
@@ -395,13 +395,13 @@ watch(
 
     pendingFocus.value = null
   },
-  { flush: 'post', immediate: true },
+  { flush: "post", immediate: true },
 )
 
 let observer: MutationObserver | null = null
 
 onMounted(() => {
-  if (!rootElement.value || typeof MutationObserver === 'undefined') {
+  if (!rootElement.value || typeof MutationObserver === "undefined") {
     return
   }
 

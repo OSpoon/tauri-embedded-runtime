@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { RuntimeSetupWizard, useRuntimeSetup } from "@/features/runtime-setup";
-import { RuntimeHome } from "@/features/runtime-home";
-import type { ServiceName } from "@/features/runtime-setup/types";
+import type { ServiceName } from "@/features/runtime-setup/types"
+import { ref } from "vue"
+import { RuntimeHome } from "@/features/runtime-home"
+import { RuntimeSetupWizard, useRuntimeSetup } from "@/features/runtime-setup"
 
 const {
   runtimeSnapshot,
@@ -17,20 +17,20 @@ const {
   bootstrapRuntime,
   cancelRuntime,
   callDemoService: callService,
-} = useRuntimeSetup();
+} = useRuntimeSetup()
 
-const showBusinessHome = ref(false);
+const showBusinessHome = ref(false)
 
 function openBusinessHome() {
-  showBusinessHome.value = true;
+  showBusinessHome.value = true
 }
 
 function backToRuntimeCheck() {
-  showBusinessHome.value = false;
+  showBusinessHome.value = false
 }
 
 function callBusinessService(name: ServiceName) {
-  void callService(name);
+  void callService(name)
 }
 </script>
 

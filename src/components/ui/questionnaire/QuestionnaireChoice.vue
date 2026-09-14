@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
+import type { HTMLAttributes } from "vue"
 
-import { CheckIcon } from '@lucide/vue'
-import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
-import { cn } from '@/lib/utils'
-import { getAnswerKeyShortcuts, injectQuestionnaireItemContext } from './useQuestionnaire'
+import { CheckIcon } from "@lucide/vue"
+import { computed, onBeforeUnmount, ref, useId, watch } from "vue"
+import { cn } from "@/lib/utils"
+import { getAnswerKeyShortcuts, injectQuestionnaireItemContext } from "./useQuestionnaire"
 
 const props = withDefaults(defineProps<{
   /** Controlled checked state. Use with `v-model:checked`. */
   checked?: boolean
-  class?: HTMLAttributes['class']
+  class?: HTMLAttributes["class"]
   /** Checks the choice on mount and after a native form reset. */
   defaultChecked?: boolean
   disabled?: boolean
@@ -24,8 +24,8 @@ const props = withDefaults(defineProps<{
 })
 
 const emits = defineEmits<{
-  'change': [event: Event]
-  'update:checked': [checked: boolean]
+  "change": [event: Event]
+  "update:checked": [checked: boolean]
 }>()
 
 const item = injectQuestionnaireItemContext()
@@ -43,9 +43,9 @@ const checked = computed(() => {
   }
 
   // A skipped item clears every answer, including controlled ones.
-  return item.status.value === 'skipped' ? false : props.checked!
+  return item.status.value === "skipped" ? false : props.checked!
 })
-const type = computed(() => (item.multiple.value ? 'checkbox' : 'radio'))
+const type = computed(() => (item.multiple.value ? "checkbox" : "radio"))
 const shortcut = computed(() =>
   item.shortcutByChoiceValue.value?.get(props.value)
   ?? item.shortcutByAnswerId.value.get(answerId)
@@ -58,7 +58,7 @@ function syncCheckedElement() {
 }
 
 function handleChange(event: Event) {
-  emits('change', event)
+  emits("change", event)
 
   if (event.defaultPrevented) {
     syncCheckedElement()
@@ -67,7 +67,7 @@ function handleChange(event: Event) {
 
   const nextChecked = (event.target as HTMLInputElement).checked
 
-  emits('update:checked', nextChecked)
+  emits("update:checked", nextChecked)
 
   if (!controlled.value) {
     item.setAnswerSelectionFromInteraction(answerId, nextChecked)
@@ -75,7 +75,7 @@ function handleChange(event: Event) {
   }
 
   // Re-selecting the same controlled choice has to clear the skipped state.
-  if (item.status.value === 'skipped' && props.checked === nextChecked) {
+  if (item.status.value === "skipped" && props.checked === nextChecked) {
     item.setAnswerSelectionFromInteraction(answerId, props.checked)
   }
 
@@ -101,10 +101,10 @@ watch([inputElement, disabled, () => props.disabled, () => props.value], ([eleme
     element,
     id: answerId,
     ownDisabled: props.disabled,
-    type: 'choice',
+    type: "choice",
     value: props.value,
   })
-}, { flush: 'post' })
+}, { flush: "post" })
 
 watch(() => props.defaultChecked, (defaultChecked) => {
   item.setAnswerDefault(answerId, defaultChecked)
@@ -116,7 +116,7 @@ watch([() => props.checked, item.resetVersion], () => {
   }
 }, { immediate: true })
 
-watch(item.controlSyncVersion, syncCheckedElement, { flush: 'post' })
+watch(item.controlSyncVersion, syncCheckedElement, { flush: "post" })
 
 watch([checked, inputElement, () => props.defaultChecked, item.resetVersion], () => {
   if (!inputElement.value) {
@@ -128,7 +128,7 @@ watch([checked, inputElement, () => props.defaultChecked, item.resetVersion], ()
   inputElement.value.defaultChecked = controlled.value ? props.checked! : props.defaultChecked
 
   syncCheckedElement()
-}, { flush: 'post' })
+}, { flush: "post" })
 
 onBeforeUnmount(() => {
   unregisterControl?.()

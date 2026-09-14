@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import type { QuestionnaireInputType } from './useQuestionnaire'
-import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
-import { cn } from '@/lib/utils'
+import type { HTMLAttributes } from "vue"
+import type { QuestionnaireInputType } from "./useQuestionnaire"
+import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from "vue"
+import { cn } from "@/lib/utils"
 import {
   getAnswerKeyShortcuts,
   hasInputValue,
   injectQuestionnaireItemContext,
-} from './useQuestionnaire'
+} from "./useQuestionnaire"
 
 defineOptions({
   // The wrapper is the root element, so attributes have to reach the input.
@@ -15,7 +15,7 @@ defineOptions({
 })
 
 const props = withDefaults(defineProps<{
-  class?: HTMLAttributes['class']
+  class?: HTMLAttributes["class"]
   /** Fills the answer on mount and after a native form reset. */
   defaultValue?: string | number
   disabled?: boolean
@@ -24,11 +24,11 @@ const props = withDefaults(defineProps<{
   type?: QuestionnaireInputType
 }>(), {
   disabled: false,
-  type: 'text',
+  type: "text",
 })
 
 const emits = defineEmits<{
-  'update:modelValue': [value: string]
+  "update:modelValue": [value: string]
 }>()
 
 const item = injectQuestionnaireItemContext()
@@ -36,7 +36,7 @@ const item = injectQuestionnaireItemContext()
 const answerId = useId()
 const inputElement = ref<HTMLInputElement | null>(null)
 const initialDefaultFilled = hasInputValue(props.defaultValue)
-const uncontrolledValue = ref(String(props.defaultValue ?? ''))
+const uncontrolledValue = ref(String(props.defaultValue ?? ""))
 
 const controlled = computed(() => props.modelValue !== undefined)
 const defaultFilled = computed(() => hasInputValue(props.defaultValue))
@@ -44,7 +44,7 @@ const disabled = computed(() => item.disabled.value || props.disabled)
 // Vue re-applies `value` on every render, so the input always renders the value
 // the questionnaire owns instead of an undefined binding that would clear it.
 const value = computed(() =>
-  controlled.value ? String(props.modelValue ?? '') : uncontrolledValue.value)
+  controlled.value ? String(props.modelValue ?? "") : uncontrolledValue.value)
 const filled = computed(() => hasInputValue(value.value))
 const selected = computed(() => item.selectedAnswerIds.value.includes(answerId))
 
@@ -57,7 +57,7 @@ function syncValueElement() {
 function handleInput(event: Event) {
   const nextValue = (event.target as HTMLInputElement).value
 
-  emits('update:modelValue', nextValue)
+  emits("update:modelValue", nextValue)
 
   if (controlled.value) {
     // The host owns the value, so restore whatever it kept.
@@ -86,10 +86,10 @@ watch([inputElement, disabled, () => props.disabled], ([element]) => {
     element,
     id: answerId,
     ownDisabled: props.disabled,
-    type: 'input',
-    value: '',
+    type: "input",
+    value: "",
   })
-}, { flush: 'post' })
+}, { flush: "post" })
 
 watch(defaultFilled, (nextDefaultFilled) => {
   item.setAnswerDefault(answerId, nextDefaultFilled)
@@ -105,7 +105,7 @@ watch([value, filled], () => {
 
 watch(item.resetVersion, () => {
   if (!controlled.value) {
-    uncontrolledValue.value = String(props.defaultValue ?? '')
+    uncontrolledValue.value = String(props.defaultValue ?? "")
   }
 })
 
@@ -117,9 +117,9 @@ watch([value, inputElement], () => {
   // A native form reset restores `defaultValue`, so keep it in sync with the
   // value the questionnaire owns.
   inputElement.value.defaultValue = String(
-    (controlled.value ? props.modelValue : props.defaultValue) ?? '',
+    (controlled.value ? props.modelValue : props.defaultValue) ?? "",
   )
-}, { flush: 'post' })
+}, { flush: "post" })
 
 onBeforeUnmount(() => {
   unregisterControl?.()

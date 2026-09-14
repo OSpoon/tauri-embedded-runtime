@@ -82,6 +82,20 @@ pnpm tauri dev
 pnpm build
 ```
 
+### 发布版本
+
+项目使用 `bumpp` 同步更新 `package.json`、`src-tauri/Cargo.toml` 和
+`src-tauri/tauri.conf.json`，并创建带 `v` 前缀的 Git tag。确认工作区干净且已配置
+GitHub 推送权限后执行：
+
+```bash
+pnpm release
+```
+
+发布 tag 会触发 [Release workflow](./.github/workflows/release.yml)，构建 macOS、
+Linux 和 Windows 安装包并创建 GitHub Draft Release。检查构建产物后，在 GitHub
+Release 页面手动发布。
+
 ## 数据与安全边界
 
 运行时、下载缓存、项目环境和服务日志均保存在应用私有数据目录中。服务默认只绑定
@@ -118,6 +132,7 @@ pnpm build
 提交代码前可以执行：
 
 ```bash
+pnpm lint
 pnpm build
 cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
 cargo test --manifest-path src-tauri/Cargo.toml --locked
@@ -127,6 +142,9 @@ cargo check --manifest-path src-tauri/Cargo.toml --locked
 
 GitHub Actions 会在 Pull Request 和 push 时执行相同的核心检查，配置见
 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)。
+
+提交前 hook 会通过 `lint-staged` 自动修复暂存的 TypeScript/Vue 文件，并格式化
+暂存的 Rust 文件。首次安装依赖后如需手动重新安装 hook，可执行 `pnpm prepare`。
 
 开发者接入 Python 或 Node.js 项目的步骤见
 [`docs/development/project-adapter.md`](./docs/development/project-adapter.md)。

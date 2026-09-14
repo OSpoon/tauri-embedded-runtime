@@ -1,22 +1,22 @@
-import type { ComputedRef, Ref } from 'vue'
-import { createContext } from 'reka-ui'
+import type { ComputedRef, Ref } from "vue"
+import { createContext } from "reka-ui"
 
-export type QuestionnaireItemStatus = 'unanswered' | 'answered' | 'skipped'
-export type QuestionnaireShortcutMode = 'letters' | 'numbers'
+export type QuestionnaireItemStatus = "unanswered" | "answered" | "skipped"
+export type QuestionnaireShortcutMode = "letters" | "numbers"
 
 export type QuestionnaireInputType
-  = | 'date'
-    | 'datetime-local'
-    | 'email'
-    | 'month'
-    | 'number'
-    | 'password'
-    | 'search'
-    | 'tel'
-    | 'text'
-    | 'time'
-    | 'url'
-    | 'week'
+  = | "date"
+    | "datetime-local"
+    | "email"
+    | "month"
+    | "number"
+    | "password"
+    | "search"
+    | "tel"
+    | "text"
+    | "time"
+    | "url"
+    | "week"
 
 export interface QuestionnaireChoiceDefinition {
   disabled?: boolean
@@ -40,7 +40,7 @@ export interface AnswerControlRegistration {
   element: HTMLInputElement
   id: string
   ownDisabled: boolean
-  type: 'choice' | 'input'
+  type: "choice" | "input"
   value: string
 }
 
@@ -53,7 +53,7 @@ export interface ItemRegistration {
   getChoices: () => ChoiceRegistration[]
   isDisabled: () => boolean
   isRequired: () => boolean
-  moveAnswerFocus: (element: Element, direction: 'next' | 'previous') => boolean
+  moveAnswerFocus: (element: Element, direction: "next" | "previous") => boolean
   name: string
   reset: () => void
   skip: () => void
@@ -109,10 +109,10 @@ export interface QuestionnaireItemContext {
 }
 
 export const [injectQuestionnaireRootContext, provideQuestionnaireRootContext]
-  = createContext<QuestionnaireRootContext>('Questionnaire')
+  = createContext<QuestionnaireRootContext>("Questionnaire")
 
 export const [injectQuestionnaireItemContext, provideQuestionnaireItemContext]
-  = createContext<QuestionnaireItemContext>('QuestionnaireItem')
+  = createContext<QuestionnaireItemContext>("QuestionnaireItem")
 
 export function hasInputValue(value: unknown) {
   if (Array.isArray(value)) {
@@ -123,11 +123,11 @@ export function hasInputValue(value: unknown) {
 }
 
 export function getShortcutKeys(shortcuts: QuestionnaireShortcutMode | null) {
-  if (shortcuts === 'letters') {
+  if (shortcuts === "letters") {
     return Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index))
   }
 
-  if (shortcuts === 'numbers') {
+  if (shortcuts === "numbers") {
     return Array.from({ length: 9 }, (_, index) => String(index + 1))
   }
 
@@ -135,27 +135,27 @@ export function getShortcutKeys(shortcuts: QuestionnaireShortcutMode | null) {
 }
 
 export function getShortcutFromKey(key: string, shortcuts: QuestionnaireShortcutMode) {
-  const normalizedKey = shortcuts === 'letters' ? key.toUpperCase() : key
+  const normalizedKey = shortcuts === "letters" ? key.toUpperCase() : key
 
   return getShortcutKeys(shortcuts).includes(normalizedKey) ? normalizedKey : null
 }
 
 export function getAnswerKeyShortcuts(shortcut: string | null, filled: boolean) {
-  return [shortcut, filled ? 'Enter' : null].filter(Boolean).join(' ') || undefined
+  return [shortcut, filled ? "Enter" : null].filter(Boolean).join(" ") || undefined
 }
 
 export function isAnswerFilled(answer: AnswerControlRegistration) {
-  if (answer.type === 'choice') {
+  if (answer.type === "choice") {
     return answer.element.checked
   }
 
-  return answer.element.hasAttribute('name') && hasInputValue(answer.element.value)
+  return answer.element.hasAttribute("name") && hasInputValue(answer.element.value)
 }
 
 export function isEmptyNavigableInput(answer: AnswerControlRegistration | null) {
   return (
-    answer?.type === 'input'
-    && ['email', 'password', 'search', 'tel', 'text', 'url'].includes(answer.element.type)
+    answer?.type === "input"
+    && ["email", "password", "search", "tel", "text", "url"].includes(answer.element.type)
     && !hasInputValue(answer.element.value)
   )
 }
@@ -166,14 +166,14 @@ export function isTextEntryTarget(element: Element) {
   }
 
   if (element instanceof HTMLInputElement) {
-    return !['button', 'checkbox', 'radio', 'reset', 'submit'].includes(element.type)
+    return !["button", "checkbox", "radio", "reset", "submit"].includes(element.type)
   }
 
   return element instanceof HTMLElement && element.isContentEditable
 }
 
 export function isRadioTarget(element: Element) {
-  return element instanceof HTMLInputElement && element.type === 'radio'
+  return element instanceof HTMLInputElement && element.type === "radio"
 }
 
 /**
