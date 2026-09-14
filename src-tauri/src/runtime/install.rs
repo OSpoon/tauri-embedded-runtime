@@ -148,11 +148,12 @@ fn install_generation_with_target(
                 runtime,
                 &artifact,
                 "Python",
+                "python",
                 progress.python.subrange(12, 76),
             )?;
             emit(
                 app,
-                "extract",
+                "python",
                 "running",
                 "正在准备私有 Python 运行时",
                 progress.python.at(88),
@@ -180,11 +181,12 @@ fn install_generation_with_target(
                 runtime,
                 &artifact,
                 "Node.js",
+                "node",
                 progress.node.subrange(12, 76),
             )?;
             emit(
                 app,
-                "extract",
+                "node",
                 "running",
                 "正在准备私有 Node.js 运行时",
                 progress.node.at(88),

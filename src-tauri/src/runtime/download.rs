@@ -19,6 +19,7 @@ pub(crate) fn download_artifact(
     runtime: &RuntimePaths,
     artifact: &Artifact,
     label: &str,
+    step_phase: &str,
     progress: ProgressRange,
 ) -> Result<PathBuf, String> {
     let artifact_id = &artifact.id;
@@ -31,7 +32,7 @@ pub(crate) fn download_artifact(
         let size = fs::metadata(&target).ok().map(|metadata| metadata.len());
         emit_detailed(
             app,
-            "download",
+            step_phase,
             "cached",
             &format!("已复用缓存的 {label} 运行时"),
             progress.end,
@@ -54,7 +55,7 @@ pub(crate) fn download_artifact(
             .map_err(|error| format!("无法提交已完成的 {label} 断点缓存: {error}"))?;
         emit_detailed_with_metadata(
             app,
-            "download",
+            step_phase,
             "completed",
             &format!("{label} 断点缓存校验通过"),
             progress.end,
@@ -98,7 +99,7 @@ pub(crate) fn download_artifact(
                 }
                 emit_detailed_with_metadata(
                     app,
-                    "download",
+                    step_phase,
                     "retrying",
                     &format!(
                         "下载连接失败，正在重试 ({}/{})",
@@ -128,7 +129,7 @@ pub(crate) fn download_artifact(
             }
             emit_detailed_with_metadata(
                 app,
-                "download",
+                step_phase,
                 "retrying",
                 &format!(
                     "HTTP 请求失败，正在重试 ({}/{})",
@@ -170,7 +171,7 @@ pub(crate) fn download_artifact(
         }
         emit_detailed_with_metadata(
             app,
-            "download",
+            step_phase,
             "running",
             &format!(
                 "正在下载 {label} 运行时{}",
@@ -238,7 +239,7 @@ pub(crate) fn download_artifact(
                         .unwrap_or(progress.start);
                     emit_detailed_with_metadata(
                         app,
-                        "download",
+                        step_phase,
                         "running",
                         &format!("下载 {label}：{}", format_bytes(downloaded_bytes)),
                         download_progress,
@@ -272,7 +273,7 @@ pub(crate) fn download_artifact(
                     .map_err(|error| format!("无法提交 {label} 下载缓存: {error}"))?;
                 emit_detailed_with_metadata(
                     app,
-                    "download",
+                    step_phase,
                     "completed",
                     &format!("{label} 下载完成，SHA-256 校验通过"),
                     progress.end,
@@ -296,7 +297,7 @@ pub(crate) fn download_artifact(
                 if retry_count < max_retries {
                     emit_detailed_with_metadata(
                         app,
-                        "download",
+                        step_phase,
                         "retrying",
                         &format!(
                             "{label} 下载暂时失败，正在重试 ({}/{})",

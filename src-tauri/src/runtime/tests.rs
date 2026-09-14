@@ -4,6 +4,7 @@ use super::cleanup::prune_generations;
 use super::operation::begin_operation;
 use super::plan::{bootstrap_plan, BootstrapStageKind};
 use super::probe::{backfill_component_generations, probe_version, version_matches};
+use super::project::{ensure_project_cache_layout, ProjectPaths};
 use super::storage::{
     ensure_layout, recover_interrupted_layout, safe_generation_path, write_transaction,
 };
@@ -168,6 +169,29 @@ fn project_service_modules_are_kept_independent() {
     assert_eq!(node["framework"], "express");
     assert!(node["dependencies"].as_object().is_some());
     assert!(node.get("requirements").is_none());
+}
+
+#[test]
+fn project_cache_layout_only_keeps_the_project_service_cache() {
+    let root = std::env::temp_dir().join(format!("runtime-project-cache-test-{}", unique_token()));
+    let project = ProjectPaths {
+        manifest: root.join("manifest.json"),
+        transaction: root.join("transaction.json"),
+        generations: root.join("generations"),
+        root: root.clone(),
+    };
+    fs::create_dir_all(project.root.join("cache").join("pip")).expect("create stale pip cache");
+    fs::create_dir_all(project.root.join("cache").join("npm")).expect("create stale npm cache");
+
+    ensure_project_cache_layout(&project, "node").expect("ensure Node.js cache layout");
+    assert!(project.root.join("cache").join("npm").is_dir());
+    assert!(!project.root.join("cache").join("pip").exists());
+
+    ensure_project_cache_layout(&project, "python").expect("ensure Python cache layout");
+    assert!(project.root.join("cache").join("pip").is_dir());
+    assert!(!project.root.join("cache").join("npm").exists());
+
+    fs::remove_dir_all(root).expect("remove project cache test directory");
 }
 
 #[test]

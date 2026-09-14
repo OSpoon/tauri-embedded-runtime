@@ -28,6 +28,8 @@ system's `PATH`, shell configuration, or global package directories.
   project resources.
 - `src-tauri/resources/projects/<project-id>/`: self-contained Python or Node.js demo
   services. Each project must have its own `project.json` and dependency definition.
+- A project's private cache must contain only the package-manager cache required by its
+  service: `cache/pip` for Python projects or `cache/npm` for Node.js projects.
 - `src-tauri/resources/runtime-artifacts.json`: pinned runtime artifacts. Any change must
   be reviewed for platform, architecture, version, URL, archive format, and SHA-256
   consistency.

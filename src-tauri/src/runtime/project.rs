@@ -223,6 +223,26 @@ fn ensure_project_layout(project: &ProjectPaths) -> Result<(), String> {
     Ok(())
 }
 
+pub(super) fn ensure_project_cache_layout(
+    project: &ProjectPaths,
+    service: &str,
+) -> Result<(), String> {
+    let (required_cache, obsolete_cache, service_label) = match service {
+        "python" => ("pip", "npm", "Python"),
+        "node" => ("npm", "pip", "Node.js"),
+        _ => return Err(format!("项目服务类型不支持: {service}")),
+    };
+    let cache_root = project.root.join("cache");
+    fs::create_dir_all(cache_root.join(required_cache))
+        .map_err(|error| format!("无法创建 {service_label} 依赖缓存目录: {error}"))?;
+    let obsolete_path = cache_root.join(obsolete_cache);
+    if obsolete_path.exists() {
+        fs::remove_dir_all(&obsolete_path)
+            .map_err(|error| format!("无法清理错误的 {service_label} 项目缓存目录: {error}"))?;
+    }
+    Ok(())
+}
+
 fn recover_project_layout(project: &ProjectPaths) -> Result<(), String> {
     ensure_project_layout(project)?;
     for entry in fs::read_dir(&project.generations)
@@ -655,6 +675,7 @@ fn project_snapshot_for(
     let profile = project_profile(project_id)?;
     let project = project_paths(runtime, project_id);
     ensure_project_layout(&project)?;
+    ensure_project_cache_layout(&project, &profile.service)?;
     let revision = dependency_revision(project_id)?;
     let manifest = read_project_manifest(&project);
     let runtime_manifest = read_manifest(runtime);
@@ -857,6 +878,7 @@ fn configure_private_env(
     command: &mut Command,
     base_generation: &Path,
     project_root: &Path,
+    service: &str,
     extra_bin: Option<&Path>,
 ) {
     let delimiter = if cfg!(windows) { ";" } else { ":" };
@@ -872,16 +894,25 @@ fn configure_private_env(
         .env_clear()
         .env("PATH", path_entries.join(delimiter))
         .env("HOME", project_root)
-        .env("RUNTIME_PROJECT_ROOT", project_root)
-        .env("PYTHONNOUSERSITE", "1")
-        .env("PYTHONUTF8", "1")
-        .env("PIP_DISABLE_PIP_VERSION_CHECK", "1")
-        .env("PIP_NO_INPUT", "1")
-        .env("PIP_CACHE_DIR", project_root.join("cache").join("pip"))
-        .env("npm_config_cache", project_root.join("cache").join("npm"))
-        .env("npm_config_update_notifier", "false")
-        .env("npm_config_fund", "false")
-        .env("npm_config_audit", "false");
+        .env("RUNTIME_PROJECT_ROOT", project_root);
+    match service {
+        "python" => {
+            command
+                .env("PYTHONNOUSERSITE", "1")
+                .env("PYTHONUTF8", "1")
+                .env("PIP_DISABLE_PIP_VERSION_CHECK", "1")
+                .env("PIP_NO_INPUT", "1")
+                .env("PIP_CACHE_DIR", project_root.join("cache").join("pip"));
+        }
+        "node" => {
+            command
+                .env("npm_config_cache", project_root.join("cache").join("npm"))
+                .env("npm_config_update_notifier", "false")
+                .env("npm_config_fund", "false")
+                .env("npm_config_audit", "false");
+        }
+        _ => {}
+    }
     #[cfg(windows)]
     if let Some(system_root) = std::env::var_os("SystemRoot") {
         command.env("SystemRoot", system_root);
@@ -1230,11 +1261,8 @@ fn install_project_environment(
     let profile = project_profile(project_id)?;
     let project = project_paths(runtime, project_id);
     ensure_project_layout(&project)?;
+    ensure_project_cache_layout(&project, &profile.service)?;
     recover_project_layout(&project)?;
-    fs::create_dir_all(project.root.join("cache").join("pip"))
-        .map_err(|error| format!("无法创建 Python 依赖缓存目录: {error}"))?;
-    fs::create_dir_all(project.root.join("cache").join("npm"))
-        .map_err(|error| format!("无法创建 Node.js 依赖缓存目录: {error}"))?;
 
     let generation = format!("project-generation-{}", unique_token());
     let staging = project.generations.join(format!(".{}.staging", generation));
@@ -1298,6 +1326,7 @@ fn install_project_environment(
                     &mut venv_command,
                     preparation.base_generation,
                     &project.root,
+                    "python",
                     None,
                 );
                 venv_command
@@ -1330,6 +1359,7 @@ fn install_project_environment(
                     &mut pip_command,
                     preparation.base_generation,
                     &project.root,
+                    "python",
                     Some(venv_bin),
                 );
                 pip_command
@@ -1362,6 +1392,12 @@ fn install_project_environment(
                 let base_node = preparation
                     .base_node
                     .ok_or_else(|| "基础 Node.js 解释器不存在".to_string())?;
+                let dependency_output = profile
+                    .dependencies
+                    .iter()
+                    .map(|(name, version)| format!("{name}@{version}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 let package_json = json!({
                     "name": profile.package_name.clone().unwrap_or_else(|| project_id.to_string()),
                     "private": true,
@@ -1379,6 +1415,7 @@ fn install_project_environment(
                     &mut npm_command,
                     preparation.base_generation,
                     &project.root,
+                    "node",
                     None,
                 );
                 npm_command
@@ -1393,6 +1430,19 @@ fn install_project_environment(
                         "--prefix",
                     ])
                     .arg(&staging);
+                emit_detailed_with_metadata(
+                    app,
+                    "project-node",
+                    "running",
+                    &format!("正在安装 {} 项目 Node.js 依赖", profile.framework),
+                    preparation.progress.at(10),
+                    Some(format!("npm install {dependency_output}")),
+                    None,
+                    None,
+                    Some(project_id.to_string()),
+                    0,
+                    None,
+                );
                 run_command_with_output(
                     app,
                     "project-node",
