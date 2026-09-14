@@ -14,6 +14,8 @@ system's `PATH`, shell configuration, or global package directories.
   `packageManager` field in `package.json`.
 - Use the Node.js version declared in `.nvmrc`.
 - Use the Rust toolchain declared in `rust-toolchain.toml`.
+- Keep GitHub Actions on Node.js 24-compatible releases: `actions/checkout@v7`,
+  `actions/setup-node@v7`, and `pnpm/action-setup@v6.1.0`.
 - Keep the versions in `package.json`, `src-tauri/Cargo.toml`, and
   `src-tauri/tauri.conf.json` synchronized. These files are updated together by `bumpp`.
 - Keep dependency changes in both `package.json` and `pnpm-lock.yaml`. Do not hand-edit the

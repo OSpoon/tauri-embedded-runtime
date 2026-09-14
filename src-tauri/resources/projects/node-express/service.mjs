@@ -29,5 +29,5 @@ app.get("/api/hello", (request, response) => {
 })
 
 app.listen(port, "127.0.0.1", () => {
-  console.log(`NODE_PROJECT_READY ${port}`)
+  process.stdout.write(`NODE_PROJECT_READY ${port}\n`)
 })
