@@ -45,6 +45,7 @@ pub(crate) fn ensure_no_symlink_ancestors(base: &Path, target: &Path) -> Result<
     Ok(())
 }
 
+#[cfg(unix)]
 fn safe_relative_link(base: &Path, parent: &Path, target: &Path) -> Result<(), String> {
     let mut output = base.to_path_buf();
     for component in parent.components().chain(target.components()) {

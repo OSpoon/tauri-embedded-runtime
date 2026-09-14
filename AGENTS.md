@@ -19,6 +19,9 @@ system's `PATH`, shell configuration, or global package directories.
 - Keep the versions in `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`
   synchronized. These files are updated together by `bumpp`. Let Cargo maintain
   `src-tauri/Cargo.lock` automatically; do not hand-edit its package versions.
+- Keep prerelease versions compatible with the Windows packaging policy: stable tags build all
+  configured bundles, while prerelease Windows builds use NSIS because WiX/MSI requires a
+  numeric installer version.
 - Keep dependency changes in both `package.json` and `pnpm-lock.yaml`. Do not hand-edit the
   lockfile when the package manager can regenerate it.
 

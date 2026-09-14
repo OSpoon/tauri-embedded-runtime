@@ -1,3 +1,4 @@
+#[cfg(unix)]
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};

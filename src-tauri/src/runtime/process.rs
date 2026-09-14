@@ -6,7 +6,9 @@
 
 use std::path::Path;
 use std::process::{Child, Command};
+#[cfg(unix)]
 use std::thread;
+#[cfg(unix)]
 use std::time::Duration;
 
 pub(crate) fn prepare_command(command: &mut Command) {
