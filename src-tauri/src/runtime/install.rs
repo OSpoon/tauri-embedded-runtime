@@ -69,14 +69,30 @@ impl InstallProgress {
     }
 }
 
-fn copy_runtime_tree(source: &Path, destination: &Path, label: &str) -> Result<(), String> {
+pub(super) fn copy_runtime_tree(
+    source: &Path,
+    destination: &Path,
+    label: &str,
+) -> Result<(), String> {
     let metadata = fs::symlink_metadata(source)
         .map_err(|error| format!("无法读取现有 {label} 运行时: {error}"))?;
     if metadata.file_type().is_symlink() || !metadata.is_dir() {
         return Err(format!("现有 {label} 运行时目录无效"));
     }
+    let source_root = fs::canonicalize(source)
+        .map_err(|error| format!("无法解析现有 {label} 运行时目录: {error}"))?;
     fs::create_dir_all(destination)
         .map_err(|error| format!("无法创建复用的 {label} 运行时目录: {error}"))?;
+
+    copy_runtime_directory(&source_root, source, destination, label)
+}
+
+fn copy_runtime_directory(
+    source_root: &Path,
+    source: &Path,
+    destination: &Path,
+    label: &str,
+) -> Result<(), String> {
     for entry in fs::read_dir(source)
         .map_err(|error| format!("无法扫描现有 {label} 运行时: {error}"))?
         .flatten()
@@ -86,14 +102,55 @@ fn copy_runtime_tree(source: &Path, destination: &Path, label: &str) -> Result<(
         let metadata = fs::symlink_metadata(&source_path)
             .map_err(|error| format!("无法读取现有 {label} 运行时文件: {error}"))?;
         if metadata.file_type().is_symlink() {
-            return Err(format!("现有 {label} 运行时包含不受支持的符号链接"));
-        }
-        if metadata.is_dir() {
-            copy_runtime_tree(&source_path, &destination_path, label)?;
+            #[cfg(unix)]
+            {
+                let target = fs::read_link(&source_path)
+                    .map_err(|error| format!("无法读取现有 {label} 运行时符号链接: {error}"))?;
+                validate_runtime_link(source_root, &source_path, &target, label)?;
+                std::os::unix::fs::symlink(&target, &destination_path)
+                    .map_err(|error| format!("无法复制现有 {label} 运行时符号链接: {error}"))?;
+            }
+            #[cfg(not(unix))]
+            {
+                return Err(format!("现有 {label} 运行时包含不受支持的符号链接"));
+            }
+        } else if metadata.is_dir() {
+            fs::create_dir_all(&destination_path)
+                .map_err(|error| format!("无法创建复用的 {label} 运行时目录: {error}"))?;
+            copy_runtime_directory(source_root, &source_path, &destination_path, label)?;
         } else if metadata.is_file() {
             fs::copy(&source_path, &destination_path)
                 .map_err(|error| format!("无法复用 {label} 运行时文件: {error}"))?;
+        } else {
+            return Err(format!(
+                "现有 {label} 运行时包含不受支持的文件类型: {}",
+                source_path.display()
+            ));
         }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn validate_runtime_link(
+    source_root: &Path,
+    source_link: &Path,
+    target: &Path,
+    label: &str,
+) -> Result<(), String> {
+    if target.is_absolute() {
+        return Err(format!(
+            "现有 {label} 运行时包含绝对符号链接: {}",
+            source_link.display()
+        ));
+    }
+    let resolved = fs::canonicalize(source_link.parent().unwrap_or(source_root).join(target))
+        .map_err(|error| format!("无法校验现有 {label} 运行时符号链接: {error}"))?;
+    if !resolved.starts_with(source_root) {
+        return Err(format!(
+            "现有 {label} 运行时符号链接超出运行时目录: {}",
+            source_link.display()
+        ));
     }
     Ok(())
 }

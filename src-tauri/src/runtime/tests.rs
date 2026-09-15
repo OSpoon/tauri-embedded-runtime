@@ -1,6 +1,7 @@
 use super::archive::{ensure_no_symlink_ancestors, safe_archive_path};
 use super::artifacts::{artifact_for, artifact_manifest, verify_artifact_signature};
 use super::cleanup::prune_generations;
+use super::install::copy_runtime_tree;
 use super::operation::begin_operation;
 use super::plan::{bootstrap_plan, BootstrapStageKind};
 use super::probe::{backfill_component_generations, probe_version, version_matches};
@@ -309,4 +310,48 @@ fn archive_targets_cannot_follow_existing_symlinks() {
 
     assert!(ensure_no_symlink_ancestors(&destination, &destination.join("link/file")).is_err());
     fs::remove_dir_all(root).expect("remove archive test directory");
+}
+
+#[cfg(unix)]
+#[test]
+fn copying_runtime_tree_preserves_safe_relative_symlinks() {
+    let root = std::env::temp_dir().join(format!("runtime-copy-symlink-test-{}", unique_token()));
+    let source = root.join("source");
+    let destination = root.join("destination");
+    let source_bin = source.join("bin");
+    fs::create_dir_all(&source_bin).expect("create source runtime directory");
+    fs::write(source_bin.join("python3.12"), b"python").expect("write source runtime binary");
+    std::os::unix::fs::symlink("python3.12", source_bin.join("python"))
+        .expect("create source runtime symlink");
+
+    copy_runtime_tree(&source, &destination, "Python").expect("copy runtime tree");
+
+    let copied_link = destination.join("bin/python");
+    assert!(fs::symlink_metadata(&copied_link)
+        .expect("read copied symlink metadata")
+        .file_type()
+        .is_symlink());
+    assert_eq!(
+        fs::read_link(copied_link).expect("read copied symlink"),
+        PathBuf::from("python3.12")
+    );
+    fs::remove_dir_all(root).expect("remove runtime copy test directory");
+}
+
+#[cfg(unix)]
+#[test]
+fn copying_runtime_tree_rejects_links_outside_runtime_directory() {
+    let root = std::env::temp_dir().join(format!("runtime-copy-escape-test-{}", unique_token()));
+    let source = root.join("source");
+    let outside = root.join("outside");
+    fs::create_dir_all(&source).expect("create source runtime directory");
+    fs::create_dir_all(&outside).expect("create outside directory");
+    fs::write(outside.join("secret"), b"secret").expect("write outside file");
+    std::os::unix::fs::symlink("../outside/secret", source.join("escape"))
+        .expect("create escaping source symlink");
+
+    let result = copy_runtime_tree(&source, &root.join("destination"), "Python");
+
+    assert!(result.is_err());
+    fs::remove_dir_all(root).expect("remove runtime copy escape test directory");
 }
