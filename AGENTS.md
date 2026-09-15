@@ -129,9 +129,9 @@ ci: build Tauri bundles for supported platforms
 The release commit is an automated exception and must use `release: v<version>`. It is
 created by `bumpp`; do not create or rewrite it manually.
 
-Commit messages must follow this format to keep the project history and manually maintained
-release notes consistent. Commits with an unsupported or malformed prefix may be omitted from
-release summaries.
+Commit messages must follow this format so the project history can be grouped reliably by the
+changelog generator. Commits with an unsupported or malformed prefix may be omitted from release
+summaries.
 
 ## CHANGELOG and Release Automation
 
@@ -139,27 +139,38 @@ release summaries.
 
 1. Selecting or receiving the new semantic version.
 2. Updating `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`.
-3. Running Cargo through bumpp's built-in `execute` command so Cargo can refresh
-   `src-tauri/Cargo.lock` automatically.
-4. Creating the `release: v<version>` commit, including Cargo's generated lockfile update.
-5. Creating the `v<version>` tag and pushing the commit and tag.
+3. Running Cargo through bumpp's `execute` command so Cargo can refresh `src-tauri/Cargo.lock`
+   automatically.
+4. Running the standard npm `version` lifecycle hook after the version files are updated. That
+   hook invokes `changelogen`, whose configuration reads the updated package version and generates
+   the corresponding entry in the root `CHANGELOG.md`.
+5. Creating the `release: v<version>` commit, including the generated changelog and Cargo's
+   generated lockfile update.
+6. Creating the `v<version>` tag and pushing the commit and tag.
+
+`changelogen` is the only source of release entries in `CHANGELOG.md`. Never hand-edit release
+entries or add policy text to that file. The entries are generated from Conventional Commits;
+commits with unsupported or malformed prefixes may be omitted. The generator runs on the local
+machine as part of `pnpm release`; it does not need a GitHub Actions job.
+Keep bumpp lifecycle scripts enabled during releases; `--ignore-scripts` skips the `version` hook
+and therefore skips changelog generation.
 
 The tag-triggered workflow builds and uploads the enabled platform artifacts and creates a Draft
-Release. It does not automatically generate release notes; maintainers review and edit the Draft
-Release description manually. `changelogithub` remains an optional local tool for generating a
-preview when needed, but it is not part of the GitHub Actions release path.
+Release. It does not generate or maintain the changelog. Use the generated `CHANGELOG.md` entry
+when reviewing the Draft Release description before publishing it.
 
 Use the following workflow:
 
 1. Ensure the branch is up to date, the working tree is clean, and all required checks pass.
 2. Run `pnpm release` and select `patch`, `minor`, `major`, or an explicit version.
-3. Review all synchronized version files and the release summary before confirming.
+3. Review all synchronized version files, the generated `CHANGELOG.md` entry, and the release
+   summary before confirming.
 4. The `v<version>` tag triggers `.github/workflows/release.yml`.
 5. The workflow builds all enabled matrix platform artifacts and creates a Draft Release. Intel
    macOS and Linux entries are kept commented in the matrix by default and must be explicitly
    enabled when needed.
-6. Review the platform artifacts, manually maintained release description, and signature status
-   in the GitHub Draft Release before publishing it.
+6. Review the platform artifacts, generated release entry, and signature status in the GitHub Draft
+   Release before publishing it.
 
 Do not create release tags by hand. That bypasses the Tauri version synchronization and the
 repository's Draft Release workflow.

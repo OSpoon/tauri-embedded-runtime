@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "release": "bumpp",
+    "version": "changelogen --output CHANGELOG.md",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prepare": "simple-git-hooks"
@@ -46,7 +47,7 @@
     "@types/node": "^26.5.1",
     "@vitejs/plugin-vue": "^6.0.7",
     "bumpp": "^10.4.1",
-    "changelogithub": "^15.0.5",
+    "changelogen": "^0.6.2",
     "eslint": "^10.10.0",
     "lint-staged": "^16.4.0",
     "simple-git-hooks": "^2.14.0",
