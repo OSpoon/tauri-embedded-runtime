@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.2-beta.3
+
+[compare changes](https://github.com/OSpoon/tauri-runtime-app/compare/v0.1.2-beta.2...v0.1.2-beta.3)
+
+### 🚀 Enhancements
+
+- Add updater functionality and menu integration ([e2c4048](https://github.com/OSpoon/tauri-runtime-app/commit/e2c4048))
+
+### 🏡 Chore
+
+- Update VSCode extensions recommendations and add rustfmt configuration ([e8d4f57](https://github.com/OSpoon/tauri-runtime-app/commit/e8d4f57))
+
+### ❤️ Contributors
+
+- OSpoon ([@OSpoon](https://github.com/OSpoon))
+
 ## v0.1.2-beta.2
 
 [compare changes](https://github.com/OSpoon/tauri-runtime-app/compare/v0.1.2-beta.1...v0.1.2-beta.2)
