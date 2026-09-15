@@ -70,7 +70,7 @@ pub(crate) fn download_artifact(
     }
 
     let client = Client::builder()
-        .user_agent("tauri-runtime-app/0.1")
+        .user_agent("tauri-embedded-runtime/0.1")
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(60 * 60))
         .build()

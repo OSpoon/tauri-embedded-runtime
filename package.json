@@ -1,5 +1,5 @@
 {
-  "name": "tauri-runtime-app",
+  "name": "tauri-embedded-runtime",
   "type": "module",
   "version": "0.0.0",
   "private": true,
@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/OSpoon/tauri-runtime-app.git"
+    "url": "https://github.com/OSpoon/tauri-embedded-runtime.git"
   },
   "scripts": {
     "dev": "vite",

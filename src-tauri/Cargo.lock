@@ -4157,6 +4157,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-embedded-runtime"
+version = "0.0.0"
+dependencies = [
+ "base64 0.22.1",
+ "ed25519-dalek",
+ "flate2",
+ "fs2",
+ "libc",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tauri-plugin-updater",
+ "zip 6.0.0",
+]
+
+[[package]]
 name = "tauri-macros"
 version = "2.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4306,28 +4328,6 @@ dependencies = [
  "webkit2gtk",
  "webview2-com",
  "windows",
-]
-
-[[package]]
-name = "tauri-runtime-app"
-version = "0.0.0"
-dependencies = [
- "base64 0.22.1",
- "ed25519-dalek",
- "flate2",
- "fs2",
- "libc",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "sha2",
- "tar",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tauri-plugin-updater",
- "zip 6.0.0",
 ]
 
 [[package]]

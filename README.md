@@ -1,6 +1,6 @@
-# Tauri Runtime App
+# Tauri Embedded Runtime
 
-一个基于 Tauri 2 的桌面应用运行时示例。
+一个基于 Tauri 2 的桌面应用内置运行时示例。
 
 应用会在自己的数据目录中准备 Python、Node.js 以及业务服务依赖，并启动本地服务供
 桌面端调用。运行时与项目依赖不会写入宿主机的 PATH、Shell 配置或全局包目录。
@@ -151,8 +151,8 @@ pnpm tauri build
 移除下载隔离标记后重新打开：
 
 ```bash
-xattr -d com.apple.quarantine "/Applications/tauri-runtime-app.app"
-open "/Applications/tauri-runtime-app.app"
+xattr -d com.apple.quarantine "/Applications/tauri-embedded-runtime.app"
+open "/Applications/tauri-embedded-runtime.app"
 ```
 
 如果应用不在“应用程序”目录，请替换为实际路径。该命令只是临时绕过 macOS 下载隔离，

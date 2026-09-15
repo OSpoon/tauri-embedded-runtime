@@ -12,7 +12,7 @@ import {
   XCircle,
 } from "@lucide/vue"
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
-import logoUrl from "@/assets/tauri-runtime-app-logo.png"
+import logoUrl from "@/assets/tauri-embedded-runtime-logo.png"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -163,7 +163,7 @@ function eventTime(event: RuntimeEvent) {
 <template>
   <main class="flex min-h-0 flex-1 flex-col bg-[#f8f9fd] text-zinc-900">
     <section v-if="isLanding" class="flex min-h-0 flex-1 flex-col items-center justify-center px-7 text-center">
-      <img :src="logoUrl" alt="Tauri Runtime App Logo" class="size-16 rounded-2xl shadow-lg shadow-blue-600/15">
+      <img :src="logoUrl" alt="Tauri Embedded Runtime Logo" class="size-16 rounded-2xl shadow-lg shadow-blue-600/15">
       <p class="mt-5 text-[9px] font-semibold uppercase tracking-[0.26em] text-zinc-400">
         Hermes runtime installer
       </p>

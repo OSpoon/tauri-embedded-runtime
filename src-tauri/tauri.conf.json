@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-runtime-app",
+  "productName": "tauri-embedded-runtime",
   "version": "0.0.0",
-  "identifier": "com.osp.tauri-runtime-app",
+  "identifier": "com.osp.tauri-embedded-runtime",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -41,7 +41,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdFMUYxOEE0NUE5QzE5NjMKUldSakdaeGFwQmdmZnNWNXdpUVJXdkNXU1g0dDUybXgxa3BGRGJBM1ZhUXBRR05oUGZWOURUM0EK",
       "endpoints": [
-        "https://github.com/OSpoon/tauri-runtime-app/releases/latest/download/latest.json"
+        "https://github.com/OSpoon/tauri-embedded-runtime/releases/latest/download/latest.json"
       ]
     }
   }
