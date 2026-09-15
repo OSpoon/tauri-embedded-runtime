@@ -1,6 +1,6 @@
 [package]
 name = "tauri-runtime-app"
-version = "0.1.2-beta.3"
+version = "0.0.0"
 description = "A private Python and Node.js runtime manager for Tauri applications"
 license = "MIT"
 edition = "2021"
@@ -12,31 +12,27 @@ edition = "2021"
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "tauri_runtime_app_lib"
-crate-type = [
-  "staticlib",
-  "cdylib",
-  "rlib"
-]
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [ "image-png" ] }
+tauri = { version = "2", features = ["image-png"] }
 tauri-plugin-opener = "2"
 base64 = "0.22"
-ed25519-dalek = { version = "2", default-features = false, features = [ "std" ] }
-serde = { version = "1", features = [ "derive" ] }
+ed25519-dalek = { version = "2", default-features = false, features = ["std"] }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 fs2 = "0.4"
 flate2 = "1"
 reqwest = { version = "0.12", default-features = false, features = [
   "blocking",
-  "rustls-tls"
+  "rustls-tls",
 ] }
 sha2 = "0.10"
 tar = "0.4"
-zip = { version = "6", default-features = false, features = [ "deflate" ] }
+zip = { version = "6", default-features = false, features = ["deflate"] }
 tauri-plugin-updater = "2"
 tauri-plugin-dialog = "2"
 
