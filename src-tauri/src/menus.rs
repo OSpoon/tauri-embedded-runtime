@@ -6,7 +6,7 @@ pub const CHECK_UPDATES_MENU_ID: &str = "check_updates";
 
 pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let check_updates =
-        MenuItem::with_id(app, CHECK_UPDATES_MENU_ID, "检查更新…", true, None::<&str>)?;
+        MenuItem::with_id(app, CHECK_UPDATES_MENU_ID, "检查更新", true, None::<&str>)?;
     let about_icon = Image::from_bytes(include_bytes!("../icons/icon.png"))?;
     let about = PredefinedMenuItem::about(
         app,
