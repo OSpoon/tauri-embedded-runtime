@@ -1,6 +1,6 @@
 [package]
 name = "tauri-runtime-app"
-version = "0.1.2-beta.1"
+version = "0.1.2-beta.2"
 description = "A private Python and Node.js runtime manager for Tauri applications"
 license = "MIT"
 edition = "2021"
