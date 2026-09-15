@@ -22,6 +22,9 @@ system's `PATH`, shell configuration, or global package directories.
 - Keep prerelease versions compatible with the Windows packaging policy: stable tags build all
   configured bundles, while prerelease Windows builds use NSIS because WiX/MSI requires a
   numeric installer version.
+- Keep the updater signing public key in `src-tauri/tauri.conf.json`. Never commit the private
+  key under `.tauri/`; provide it to release builds through `TAURI_SIGNING_PRIVATE_KEY` and
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` GitHub Actions secrets.
 - Keep dependency changes in both `package.json` and `pnpm-lock.yaml`. Do not hand-edit the
   lockfile when the package manager can regenerate it.
 
@@ -156,8 +159,10 @@ Keep bumpp lifecycle scripts enabled during releases; `--ignore-scripts` skips t
 and therefore skips changelog generation.
 
 The tag-triggered workflow builds and uploads the enabled platform artifacts and creates a Draft
-Release. It does not generate or maintain the changelog. Use the generated `CHANGELOG.md` entry
-when reviewing the Draft Release description before publishing it.
+Release. With `bundle.createUpdaterArtifacts: true`, it also signs the updater artifacts and
+publishes the generated `latest.json` metadata. It does not generate or maintain the changelog.
+Use the generated `CHANGELOG.md` entry when reviewing the Draft Release description before
+publishing it.
 
 Use the following workflow:
 
@@ -171,6 +176,12 @@ Use the following workflow:
    enabled when needed.
 6. Review the platform artifacts, generated release entry, and signature status in the GitHub Draft
    Release before publishing it.
+
+The application updater is native-only. Do not add a frontend updater page or JavaScript updater
+composable unless the product requirements explicitly change. The native “检查更新…” menu item
+handles checking, user confirmation, signed download, installation, and restart through the Rust
+updater and dialog plugins. The endpoint is the current repository's stable GitHub Release
+`latest.json`; prerelease releases are not treated as the stable update channel.
 
 Do not create release tags by hand. That bypasses the Tauri version synchronization and the
 repository's Draft Release workflow.

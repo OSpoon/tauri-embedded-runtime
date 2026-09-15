@@ -99,10 +99,34 @@ pnpm release
 发布 tag 会触发 [Release workflow](./.github/workflows/release.yml)，默认构建 macOS ARM 和
 Windows 安装包并创建 GitHub Draft Release。macOS Intel 和 Linux 构建项已在 workflow 中保留，
 需要时可以取消注释。稳定版本构建全部启用的安装包；预发布版本的 Windows 构建使用 NSIS，
-以满足 MSI 对数值版本号的限制。构建完成后，workflow 将构建结果保存到 GitHub Draft
-Release。根目录 [`CHANGELOG.md`](./CHANGELOG.md) 由 `changelogen` 在 `pnpm release` 时
+以满足 MSI 对数值版本号的限制。构建完成后，workflow 会生成带签名的 updater artifact 和
+`latest.json`，并将构建结果保存到 GitHub Draft Release。根目录 [`CHANGELOG.md`](./CHANGELOG.md) 由 `changelogen` 在 `pnpm release` 时
 根据 Conventional Commits 自动生成，不要手动维护其中的发布条目。发布后可在 GitHub
 Draft Release 中使用对应的生成条目，检查构建产物和发布说明后再正式发布。
+
+### 应用内更新
+
+应用更新不增加前端更新页面，而是通过原生菜单完成。打开应用菜单中的“检查更新…”，
+应用会检查 GitHub Release 的 `latest.json`，确认后下载并验证签名，安装完成后自动重启。
+Tauri updater 的签名私钥不能提交到仓库；本地生成或保存私钥时建议使用：
+
+```bash
+pnpm tauri signer generate -w ./.tauri/updater.key
+```
+
+将 `.tauri/updater.key` 的内容配置到 GitHub Actions secret
+`TAURI_SIGNING_PRIVATE_KEY`，无密码私钥将 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 留空；如使用
+密码保护的私钥，则同时配置对应密码。`.tauri/` 已被 `.gitignore` 忽略，私钥不可提交。
+公钥已写入 [`src-tauri/tauri.conf.json`](./src-tauri/tauri.conf.json)，更换密钥时必须同步更新
+公钥并在更换前规划已安装版本的升级兼容性。
+
+本地执行完整 bundle 构建时也需要提供签名私钥；开发运行或使用 `--no-bundle` 时不需要：
+
+```bash
+TAURI_SIGNING_PRIVATE_KEY=./.tauri/updater.key \
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
+pnpm tauri build
+```
 
 ## 数据与安全边界
 

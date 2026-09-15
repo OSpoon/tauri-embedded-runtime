@@ -1,4 +1,8 @@
+#[cfg(desktop)]
+mod menus;
 mod runtime;
+#[cfg(desktop)]
+mod updater;
 
 use tauri::{Manager, RunEvent, WindowEvent};
 
@@ -10,14 +14,24 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .manage(runtime::ServiceState::default())
         .plugin(tauri_plugin_opener::init())
         .on_window_event(|window, event| {
             if matches!(event, WindowEvent::CloseRequested { .. }) {
                 runtime::commands::shutdown_runtime(window.app_handle());
             }
-        })
+        });
+
+    #[cfg(desktop)]
+    let builder = builder
+        .manage(updater::UpdateState::default())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .menu(menus::build_menu)
+        .on_menu_event(updater::handle_menu_event);
+
+    builder
         .invoke_handler(tauri::generate_handler![
             greet,
             runtime::commands::runtime_status,

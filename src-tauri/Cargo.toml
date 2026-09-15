@@ -22,7 +22,7 @@ crate-type = [
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["image-png"] }
 tauri-plugin-opener = "2"
 base64 = "0.22"
 ed25519-dalek = { version = "2", default-features = false, features = [ "std" ] }
@@ -37,6 +37,8 @@ reqwest = { version = "0.12", default-features = false, features = [
 sha2 = "0.10"
 tar = "0.4"
 zip = { version = "6", default-features = false, features = [ "deflate" ] }
+tauri-plugin-updater = "2"
+tauri-plugin-dialog = "2"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
