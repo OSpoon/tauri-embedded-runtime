@@ -103,7 +103,7 @@ Windows 安装包并创建 GitHub Draft Release。macOS Intel 和 Linux 构建�
 Release，发布说明由维护者在 GitHub Release 页面手动维护。检查构建产物和发布说明后再
 正式发布。发布说明以
 [GitHub Releases](https://github.com/OSpoon/tauri-runtime-app/releases) 为准，
-[`CHANGELOG.md`](./CHANGELOG.md) 记录生成约定。
+[`CHANGELOG.md`](./CHANGELOG.md) 记录发布说明约定。
 
 ## 数据与安全边界
 
@@ -123,6 +123,17 @@ Release，发布说明由维护者在 GitHub Release 页面手动维护。检查
 4. 如果只是项目依赖变化，可重新执行检测，应用会保留可复用的基础运行时。
 
 服务启动失败时，应用会停止本次启动的服务，并保留上一份可用运行时（如果存在）。
+
+如果 macOS 提示“应用已损坏，无法打开”，并且应用来自可信的发布来源，可以在终端
+移除下载隔离标记后重新打开：
+
+```bash
+xattr -d com.apple.quarantine "/Applications/tauri-runtime-app.app"
+open "/Applications/tauri-runtime-app.app"
+```
+
+如果应用不在“应用程序”目录，请替换为实际路径。该命令只是临时绕过 macOS 下载隔离，
+不等同于正式的 Apple 签名与公证。
 
 ## 项目扩展
 
