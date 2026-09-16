@@ -35,7 +35,7 @@ function callBusinessService(name: ServiceName) {
 </script>
 
 <template>
-  <div class="app-shell flex min-h-screen min-w-0 flex-col bg-[#f8f9fd] text-zinc-950">
+  <div class="app-shell flex min-h-screen min-w-0 flex-col bg-background text-foreground">
     <RuntimeHome
       v-if="showBusinessHome"
       :services="services"

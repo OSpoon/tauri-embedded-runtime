@@ -26,18 +26,18 @@ function serviceFor(name: ServiceName) {
 </script>
 
 <template>
-  <main class="flex min-h-0 flex-1 flex-col bg-[#f8f9fd] text-zinc-900">
+  <main class="flex min-h-0 flex-1 flex-col bg-background text-foreground">
     <ScrollArea class="h-full">
       <div class="mx-auto w-full max-w-5xl px-5 py-5 sm:px-8 sm:py-7 lg:px-10">
         <header class="flex flex-wrap items-start justify-between gap-4">
           <div class="min-w-0">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-600">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">
               Local business workspace
             </p>
-            <h1 class="mt-2 text-2xl font-semibold tracking-[-0.05em] text-zinc-900 sm:text-3xl">
+            <h1 class="mt-2 text-2xl font-semibold tracking-[-0.05em] text-foreground sm:text-3xl">
               业务首页
             </h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
               运行环境已经准备完成。你可以从这里调用已启动的本地服务，作为后续真实项目接入的入口。
             </p>
           </div>
@@ -47,7 +47,7 @@ function serviceFor(name: ServiceName) {
           </Button>
         </header>
 
-        <Card class="mt-6 bg-white/80 shadow-sm shadow-zinc-900/[0.03]">
+        <Card class="mt-6 bg-card shadow-sm">
           <CardHeader class="pb-3">
             <div class="flex items-center justify-between gap-3">
               <div>
@@ -66,11 +66,11 @@ function serviceFor(name: ServiceName) {
           </CardHeader>
           <CardContent>
             <div v-if="props.projects.length" class="grid gap-3 sm:grid-cols-2">
-              <Card v-for="project in props.projects" :key="project.project_id" class="bg-[#fafbfe] shadow-none ring-zinc-200">
+              <Card v-for="project in props.projects" :key="project.project_id" class="bg-muted/30 shadow-none ring-border">
                 <CardHeader class="pb-3">
                   <div class="flex items-start justify-between gap-3">
                     <div class="flex min-w-0 items-center gap-3">
-                      <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                      <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Server class="size-4" />
                       </div>
                       <div class="min-w-0">
@@ -85,29 +85,29 @@ function serviceFor(name: ServiceName) {
                     <Badge v-if="serviceFor(project.project_id)?.running" variant="outline" class="shrink-0 text-[10px] font-normal text-emerald-600">
                       运行中
                     </Badge>
-                    <Badge v-else variant="outline" class="shrink-0 text-[10px] font-normal text-zinc-400">
+                    <Badge v-else variant="outline" class="shrink-0 text-[10px] font-normal text-muted-foreground">
                       未启动
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent class="space-y-3">
-                  <p class="text-xs leading-5 text-zinc-500">
+                  <p class="text-xs leading-5 text-muted-foreground">
                     {{ project.framework }} 项目服务<span v-if="serviceFor(project.project_id)?.port"> · 127.0.0.1:{{ serviceFor(project.project_id)?.port }}</span>
                   </p>
-                  <Button class="h-8 w-full bg-blue-600 text-xs text-white hover:bg-blue-700" :disabled="!serviceFor(project.project_id)?.running || !project.demo_path" @click="emit('call', project.project_id)">
+                  <Button class="h-8 w-full text-xs" :disabled="!serviceFor(project.project_id)?.running || !project.demo_path" @click="emit('call', project.project_id)">
                     调用 {{ project.display_name }}
                     <ArrowRight class="size-3.5" />
                   </Button>
                 </CardContent>
               </Card>
             </div>
-            <p v-else class="rounded-lg border border-dashed border-zinc-200 bg-[#fafbfe] p-4 text-sm text-zinc-500">
+            <p v-else class="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
               暂无已注册的业务项目。
             </p>
           </CardContent>
         </Card>
 
-        <Card class="mt-4 bg-white/80 shadow-sm shadow-zinc-900/[0.03]">
+        <Card class="mt-4 bg-card shadow-sm">
           <CardHeader class="pb-3">
             <CardTitle class="text-base">
               最近一次调用
@@ -117,13 +117,13 @@ function serviceFor(name: ServiceName) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div class="flex min-h-20 items-start gap-3 rounded-lg border border-dashed border-zinc-200 bg-[#fafbfe] p-3">
-              <CircleAlert class="mt-0.5 size-4 shrink-0 text-zinc-400" />
-              <p class="text-sm leading-6 text-zinc-500">
+            <div class="flex min-h-20 items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-3">
+              <CircleAlert class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <p class="text-sm leading-6 text-muted-foreground">
                 {{ props.message }}
               </p>
             </div>
-            <p class="mt-3 flex items-center gap-1.5 text-xs text-zinc-400">
+            <p class="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
               <ExternalLink class="size-3" />
               后续项目可以复用这里的服务状态与调用入口。
             </p>
