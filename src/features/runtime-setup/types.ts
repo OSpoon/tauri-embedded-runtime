@@ -1,5 +1,6 @@
 export type RuntimeStatus = "checking" | "ready" | "missing" | "corrupted" | "outdated" | "failed"
 export type StepStatus = "pending" | "active" | "complete" | "failed"
+export type RuntimeKind = "python" | "node"
 // Service names come from registered project modules; the demo currently uses
 // python/node, but the reusable setup module must not restrict future modules.
 export type ServiceName = string
@@ -43,6 +44,7 @@ export interface RuntimeSnapshot {
   active_generation: string | null
   runtime_revision: string
   requirements: { python: boolean, node: boolean }
+  selected_runtime: RuntimeKind
   python: RuntimeComponent
   node: RuntimeComponent
   projects: ProjectSnapshot[]

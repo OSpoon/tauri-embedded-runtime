@@ -10,7 +10,9 @@ use tauri::AppHandle;
 
 use super::events::{emit, emit_detailed_with_metadata};
 use super::operation::{check_cancelled, is_cancelled};
-use super::probe::{binary_paths, inspect};
+use super::probe::{
+    binary_paths, inspect_with_requirements, requirements_for_runtime, runtime_label,
+};
 use super::process::{prepare_command, terminate, terminate_orphaned_processes};
 use super::project::{project_environment, ProjectEnvironment};
 use super::projects::PROJECT_MODULES;
@@ -93,22 +95,18 @@ fn service_env(
         .as_ref()
         .and_then(|path| path.parent())
         .map(|path| path.to_string_lossy().into_owned());
+    let runtime_bin = if project.service == "node" {
+        node_bin
+    } else {
+        python_bin
+    };
+    let mut path_entries = Vec::new();
+    if let Some(project_python_bin) = project_python_bin {
+        path_entries.push(project_python_bin);
+    }
+    path_entries.push(runtime_bin.to_string_lossy().into_owned());
     let mut environment = vec![
-        (
-            "PATH",
-            format!(
-                "{}{}{}{}{}",
-                project_python_bin.as_deref().unwrap_or(""),
-                if project_python_bin.is_some() {
-                    delimiter
-                } else {
-                    ""
-                },
-                node_bin.display(),
-                delimiter,
-                python_bin.display(),
-            ),
-        ),
+        ("PATH", path_entries.join(delimiter)),
         ("PYTHONUTF8", "1".to_string()),
         ("PYTHONNOUSERSITE", "1".to_string()),
         ("PYTHONPATH", service_dir.to_string_lossy().into_owned()),
@@ -273,10 +271,12 @@ pub(crate) fn stop_children(children: &mut Vec<RunningService>) {
 pub(crate) fn start_services(
     app: &AppHandle,
     state: &ServiceState,
+    runtime_name: &str,
 ) -> Result<Vec<ServiceSnapshot>, String> {
     check_cancelled(app)?;
+    let requirements = requirements_for_runtime(runtime_name)?;
     let runtime = paths(app)?;
-    let snapshot = inspect(app)?;
+    let snapshot = inspect_with_requirements(app, requirements)?;
     if snapshot.status != "ready" {
         return Err(format!("运行时尚未就绪: {}", snapshot.message));
     }
@@ -285,13 +285,22 @@ pub(crate) fn start_services(
         .as_deref()
         .and_then(|value| safe_generation_path(&runtime, value))
         .ok_or_else(|| "运行时 active generation 无效".to_string())?;
-    let (_, node) = binary_paths(&runtime, snapshot.active_generation.as_deref());
-    let node = node.ok_or_else(|| "私有 Node.js 解释器不存在".to_string())?;
+    let node = if runtime_name == "node" {
+        let (_, node) = binary_paths(&runtime, snapshot.active_generation.as_deref());
+        Some(node.ok_or_else(|| "私有 Node.js 解释器不存在".to_string())?)
+    } else {
+        None
+    };
     emit(app, "verify", "running", "正在验证运行时并启动示例服务", 92);
     let projects = PROJECT_MODULES
         .iter()
+        .filter(|module| module.service.id == runtime_name)
         .map(|module| project_environment(&runtime, module.project_id))
         .collect::<Result<Vec<_>, _>>()?;
+    let expected_projects = projects
+        .iter()
+        .map(|project| project.project_id.as_str())
+        .collect::<Vec<_>>();
 
     let mut children = state
         .children
@@ -299,6 +308,12 @@ pub(crate) fn start_services(
         .map_err(|_| "服务状态锁已损坏".to_string())?;
     if children.is_empty() {
         terminate_orphaned_processes(&runtime.root);
+    }
+    let has_expected_services = children
+        .iter()
+        .all(|service| expected_projects.contains(&service.name.as_str()));
+    if !has_expected_services {
+        stop_children(&mut children);
     }
     let already_running = children.iter_mut().all(|service| {
         service
@@ -324,9 +339,25 @@ pub(crate) fn start_services(
                 .join("; ");
             emit_detailed_with_metadata(
                 app,
+                "verify",
+                "completed",
+                "运行时验证并启动示例服务完成",
+                100,
+                None,
+                None,
+                None,
+                None,
+                0,
+                None,
+            );
+            emit_detailed_with_metadata(
+                app,
                 "services",
                 "ready",
-                "Python 和 Node.js 示例服务已运行，健康检查通过",
+                &format!(
+                    "{} 示例服务已运行，健康检查通过",
+                    runtime_label(runtime_name)
+                ),
                 100,
                 Some(output),
                 None,
@@ -362,7 +393,7 @@ pub(crate) fn start_services(
             )
         } else {
             (
-                Some(node.clone()),
+                node.clone(),
                 format!("{} 项目 Node.js 解释器不存在", project.display_name),
             )
         };
@@ -404,9 +435,25 @@ pub(crate) fn start_services(
         .join("; ");
     emit_detailed_with_metadata(
         app,
+        "verify",
+        "completed",
+        "运行时验证并启动示例服务完成",
+        100,
+        None,
+        None,
+        None,
+        None,
+        0,
+        None,
+    );
+    emit_detailed_with_metadata(
+        app,
         "services",
         "ready",
-        "Python 和 Node.js 示例服务已启动，健康检查通过",
+        &format!(
+            "{} 示例服务已启动，健康检查通过",
+            runtime_label(runtime_name)
+        ),
         100,
         Some(output),
         None,
@@ -425,13 +472,21 @@ pub(crate) fn start_services(
         .collect())
 }
 
-pub(crate) fn service_status(state: &ServiceState) -> Result<Vec<ServiceSnapshot>, String> {
+pub(crate) fn service_status(
+    state: &ServiceState,
+    runtime_name: &str,
+) -> Result<Vec<ServiceSnapshot>, String> {
     let mut children = state
         .children
         .lock()
         .map_err(|_| "服务状态锁已损坏".to_string())?;
     children
         .iter_mut()
+        .filter(|service| {
+            PROJECT_MODULES.iter().any(|module| {
+                module.project_id == service.name && module.service.id == runtime_name
+            })
+        })
         .map(|service| {
             let running = service
                 .child

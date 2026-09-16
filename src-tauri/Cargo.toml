@@ -1,7 +1,7 @@
 [package]
 name = "tauri-embedded-runtime"
 version = "0.0.0"
-description = "A private Python and Node.js runtime manager for Tauri applications"
+description = "A private Python or Node.js runtime manager for Tauri applications"
 license = "MIT"
 edition = "2021"
 

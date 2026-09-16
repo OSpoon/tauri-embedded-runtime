@@ -4,6 +4,7 @@ export type {
   ProjectInfo,
   RuntimeComponent,
   RuntimeEvent,
+  RuntimeKind,
   RuntimeSnapshot,
   RuntimeStatus,
   ServiceName,

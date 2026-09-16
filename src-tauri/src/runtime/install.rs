@@ -11,7 +11,8 @@ use super::events::{emit, emit_detailed_with_metadata};
 use super::operation::{active_operation, check_cancelled};
 use super::plan::ProgressRange;
 use super::probe::{
-    find_binary, inspect_with_requirements, probe_version, runtime_policy, version_matches,
+    find_binary, inspect_with_requirements, probe_version, requirements_for_runtime, runtime_label,
+    version_matches,
 };
 use super::storage::{
     acquire_lock, clear_transaction, paths, read_manifest, safe_generation_path, write_manifest,
@@ -263,11 +264,7 @@ fn install_generation_with_target(
             app,
             validation_phase,
             "running",
-            if requirements.node {
-                "正在校验 Python 和 Node.js 版本"
-            } else {
-                "正在校验 Python 版本"
-            },
+            &format!("正在校验 {} 版本", runtime_label(validation_phase)),
             progress.validation,
         );
         let python = find_binary(
@@ -364,8 +361,18 @@ fn install_generation_with_target(
     result
 }
 
-pub(crate) fn install(app: &AppHandle, repair: bool) -> Result<RuntimeSnapshot, String> {
-    install_with_requirements(app, repair, None, runtime_policy(), InstallProgress::full())
+pub(crate) fn install(
+    app: &AppHandle,
+    repair: bool,
+    runtime: &str,
+) -> Result<RuntimeSnapshot, String> {
+    install_with_requirements(
+        app,
+        repair,
+        None,
+        requirements_for_runtime(runtime)?,
+        InstallProgress::full(),
+    )
 }
 
 pub(crate) fn install_component(
@@ -376,7 +383,7 @@ pub(crate) fn install_component(
         app,
         true,
         Some(component),
-        runtime_policy(),
+        requirements_for_runtime(component)?,
         InstallProgress::full(),
     )
 }
@@ -392,7 +399,7 @@ pub(crate) fn install_runtime_stage(
             python: true,
             node: false,
         },
-        "node" => runtime_policy(),
+        "node" => requirements_for_runtime(component)?,
         _ => return Err(format!("不支持准备运行时组件: {component}")),
     };
     install_with_requirements(
@@ -459,12 +466,14 @@ fn install_with_requirements(
         install_generation_with_target(app, &runtime, &requirements, target, progress);
     match generation_result {
         Ok(_) => {
-            let (phase, message) = if requirements.node {
-                ("node", "基础 Python 和 Node.js 运行时已准备完成")
-            } else {
-                ("python", "基础 Python 运行时已准备完成")
-            };
-            emit(app, phase, "completed", message, progress.commit);
+            let runtime = if requirements.node { "node" } else { "python" };
+            emit(
+                app,
+                runtime,
+                "completed",
+                &format!("基础 {} 运行时已准备完成", runtime_label(runtime)),
+                progress.commit,
+            );
             inspect_with_requirements(app, requirements)
         }
         Err(error) => {

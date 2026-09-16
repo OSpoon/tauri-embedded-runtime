@@ -13,8 +13,10 @@ const {
   projectCatalog,
   demoMessage,
   setupStarted,
+  selectedRuntime,
   wizardSteps,
   bootstrapRuntime,
+  selectRuntime,
   cancelRuntime,
   callDemoService: callService,
 } = useRuntimeSetup()
@@ -40,6 +42,8 @@ function callBusinessService(name: ServiceName) {
       v-if="showBusinessHome"
       :services="services"
       :projects="projectCatalog"
+      :events="runtimeEvents"
+      :snapshot="runtimeSnapshot"
       :message="demoMessage"
       @back="backToRuntimeCheck"
       @call="callBusinessService"
@@ -53,9 +57,11 @@ function callBusinessService(name: ServiceName) {
       :action-running="runtimeActionRunning"
       :setup-started="setupStarted"
       :services="services"
+      :selected-runtime="selectedRuntime"
       @run="bootstrapRuntime"
       @cancel="cancelRuntime"
       @open-business="openBusinessHome"
+      @select-runtime="selectRuntime"
     />
   </div>
 </template>

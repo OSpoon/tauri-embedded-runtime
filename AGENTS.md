@@ -3,8 +3,8 @@
 ## Project Overview
 
 This repository contains a Tauri 2 desktop application built with Vue 3, TypeScript, and
-Rust. The application prepares and manages private Python and Node.js runtimes together
-with local business services. Runtime files, service dependencies, caches, and logs must
+Rust. The application prepares and manages a selected private Python or Node.js runtime
+with its local business service. Runtime files, service dependencies, caches, and logs must
 remain inside the application's private data directory and must not modify the host
 system's `PATH`, shell configuration, or global package directories.
 

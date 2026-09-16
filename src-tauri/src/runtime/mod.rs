@@ -1,4 +1,4 @@
-//! Application-owned Python and Node.js runtimes.
+//! Application-owned Python or Node.js runtime.
 //!
 //! The renderer observes this state and requests setup through the public
 //! commands below. Runtime files, service scripts, logs, and locks all live

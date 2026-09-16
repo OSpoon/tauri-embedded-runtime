@@ -4,7 +4,9 @@ use super::cleanup::prune_generations;
 use super::install::copy_runtime_tree;
 use super::operation::begin_operation;
 use super::plan::{bootstrap_plan, BootstrapStageKind};
-use super::probe::{backfill_component_generations, probe_version, version_matches};
+use super::probe::{
+    backfill_component_generations, probe_version, requirements_for_runtime, version_matches,
+};
 use super::project::{ensure_project_cache_layout, ProjectPaths};
 use super::storage::{
     ensure_layout, recover_interrupted_layout, safe_generation_path, write_transaction,
@@ -30,6 +32,18 @@ fn runtime_version_probe_requires_an_exact_version_token() {
     assert!(version_matches(Some("v24.21.0"), "v24.21.0"));
     assert!(!version_matches(Some("v24.21.01"), "v24.21.0"));
     assert!(!version_matches(Some("Python 3.12.13"), "3.12.14"));
+}
+
+#[test]
+fn runtime_selection_enables_only_the_requested_component() {
+    let python = requirements_for_runtime("python").expect("Python should be supported");
+    assert!(python.python);
+    assert!(!python.node);
+
+    let node = requirements_for_runtime("node").expect("Node.js should be supported");
+    assert!(!node.python);
+    assert!(node.node);
+    assert!(requirements_for_runtime("ruby").is_err());
 }
 
 #[test]
@@ -197,7 +211,7 @@ fn project_cache_layout_only_keeps_the_project_service_cache() {
 
 #[test]
 fn bootstrap_plan_follows_registered_service_order() {
-    let stages = bootstrap_plan();
+    let stages = bootstrap_plan("python").expect("Python bootstrap plan should be valid");
     let ids = stages.iter().map(|stage| stage.id).collect::<Vec<_>>();
     assert_eq!(
         ids,
@@ -205,10 +219,8 @@ fn bootstrap_plan_follows_registered_service_order() {
             "check",
             "python",
             "project-python",
-            "node",
-            "project-node",
             "project-tools",
-            "verify",
+            "verify"
         ]
     );
     assert!(matches!(
@@ -224,6 +236,14 @@ fn bootstrap_plan_follows_registered_service_order() {
         .all(|pair| pair[0].progress.end <= pair[1].progress.start));
     assert_eq!(stages.first().map(|stage| stage.progress.start), Some(0));
     assert_eq!(stages.last().map(|stage| stage.progress.end), Some(100));
+
+    let node_stages = bootstrap_plan("node").expect("Node.js bootstrap plan should be valid");
+    let node_ids = node_stages.iter().map(|stage| stage.id).collect::<Vec<_>>();
+    assert_eq!(
+        node_ids,
+        vec!["check", "node", "project-node", "project-tools", "verify"]
+    );
+    assert!(bootstrap_plan("ruby").is_err());
 }
 
 #[test]

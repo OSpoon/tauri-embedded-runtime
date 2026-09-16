@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import type { RuntimeEvent, RuntimeSnapshot, ServiceSnapshot, WizardStep } from "./types"
+import type { RuntimeEvent, RuntimeKind, RuntimeSnapshot, ServiceSnapshot, WizardStep } from "./types"
 import {
   ArrowRight,
+  Braces,
   Check,
   CircleAlert,
   CloudDownload,
+  Code2,
   ExternalLink,
   LoaderCircle,
   LockKeyhole,
@@ -28,12 +30,14 @@ const props = defineProps<{
   actionRunning: boolean
   setupStarted: boolean
   services: ServiceSnapshot[]
+  selectedRuntime: RuntimeKind | null
 }>()
 
 const emit = defineEmits<{
   run: []
   cancel: []
   openBusiness: []
+  selectRuntime: [runtime: RuntimeKind]
 }>()
 
 const expandedStepId = ref<string | undefined>()
@@ -42,6 +46,21 @@ const followLatestLogs = ref(true)
 let logViewport: HTMLElement | null = null
 const isLanding = computed(() => !props.setupStarted)
 const canOpenBusiness = computed(() => props.snapshot.status === "ready" && props.services.some(service => service.running))
+const runtimeOptions = [
+  {
+    id: "python" as RuntimeKind,
+    title: "Python",
+    description: "准备 CPython 与对应的 Python 项目环境",
+    icon: Code2,
+  },
+  {
+    id: "node" as RuntimeKind,
+    title: "Node.js",
+    description: "准备 Node.js 与对应的 Node 项目环境",
+    icon: Braces,
+  },
+] as const
+const selectedRuntimeLabel = computed(() => props.selectedRuntime === "node" ? "Node.js" : "Python")
 const activeStepIndex = computed(() => {
   const active = props.steps.findIndex(step => step.status === "active" || step.status === "failed")
   if (active >= 0)
@@ -171,12 +190,39 @@ function eventTime(event: RuntimeEvent) {
         运行环境检测
       </h1>
       <p class="mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
-        手动检查并准备应用私有目录中的 Python、Node.js 及各服务依赖。不会修改宿主机 PATH 或 shell 配置。
+        选择需要的运行环境，检查并准备应用私有目录中的运行时及对应服务依赖。不会修改宿主机 PATH 或 shell 配置。
       </p>
-      <Button class="mt-7 h-10 rounded-lg px-5 text-sm shadow-md shadow-primary/20" @click="emit('run')">
+      <div class="mt-7 grid w-full max-w-xl gap-3 sm:grid-cols-2">
+        <button
+          v-for="option in runtimeOptions"
+          :key="option.id"
+          type="button"
+          class="rounded-xl border bg-card p-4 text-left shadow-sm transition-colors hover:bg-accent"
+          :class="props.selectedRuntime === option.id ? 'border-primary bg-accent ring-1 ring-primary' : 'border-border'"
+          @click="emit('selectRuntime', option.id)"
+        >
+          <div class="flex items-start gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <component :is="option.icon" class="size-4" />
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-foreground">
+                {{ option.title }}
+              </p>
+              <p class="mt-1 text-xs leading-5 text-muted-foreground">
+                {{ option.description }}
+              </p>
+            </div>
+          </div>
+        </button>
+      </div>
+      <Button class="mt-5 h-10 rounded-lg px-5 text-sm shadow-md shadow-primary/20" :disabled="!props.selectedRuntime" @click="emit('run')">
         运行检测
         <ArrowRight class="size-4" />
       </Button>
+      <p v-if="props.selectedRuntime" class="mt-2 text-[10px] text-muted-foreground">
+        已选择 {{ selectedRuntimeLabel }} 环境
+      </p>
       <div class="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[10px] text-muted-foreground">
         <span class="flex items-center gap-1.5"><LockKeyhole class="size-3 text-emerald-500" />App 私有目录</span>
         <span class="flex items-center gap-1.5"><CloudDownload class="size-3 text-primary" />固定版本</span>
@@ -185,7 +231,7 @@ function eventTime(event: RuntimeEvent) {
     </section>
 
     <template v-else>
-      <header class="shrink-0 border-b border-border bg-background px-5 pb-4 pt-4 sm:px-7 lg:px-9">
+      <header class="shrink-0 border-b border-border bg-background px-5 pb-5 pt-5 sm:px-7 lg:px-9">
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-2.5">
             <LoaderCircle v-if="props.actionRunning" class="size-4 shrink-0 animate-spin text-primary" />
@@ -202,12 +248,12 @@ function eventTime(event: RuntimeEvent) {
 
       <div ref="scrollAreaHost" class="min-h-0 flex-1">
         <ScrollArea class="h-full" type="always">
-          <div class="px-5 py-4 sm:px-7 sm:py-5 lg:px-9">
-            <Card size="sm" class="mx-auto w-full max-w-none bg-card py-1 shadow-sm ring-border">
-              <CardContent class="px-3 sm:px-4">
+          <div class="mx-auto w-full max-w-5xl px-5 py-6 sm:px-7 sm:py-8 lg:px-9">
+            <Card size="sm" class="mx-auto w-full bg-card py-2 shadow-sm ring-border">
+              <CardContent class="px-4 sm:px-5">
                 <Accordion v-model="expandedStepId" type="single" collapsible>
                   <AccordionItem v-for="step in props.steps" :key="step.id" :value="step.id">
-                    <AccordionTrigger class="gap-2.5 px-2 py-3 hover:no-underline" :class="step.status === 'active' ? 'bg-accent' : ''">
+                    <AccordionTrigger class="my-0.5 gap-2.5 px-3 py-4 hover:no-underline sm:px-4" :class="step.status === 'active' ? 'bg-accent' : ''">
                       <span class="flex size-4 shrink-0 items-center justify-center">
                         <LoaderCircle v-if="step.status === 'active'" class="size-3.5 animate-spin text-primary" />
                         <Check v-else-if="step.status === 'complete'" class="size-3.5 text-primary" />
@@ -220,8 +266,8 @@ function eventTime(event: RuntimeEvent) {
                       </Badge>
                     </AccordionTrigger>
 
-                    <AccordionContent class="px-0">
-                      <div class="mb-2 ml-6 mr-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                    <AccordionContent class="px-1 pt-1">
+                      <div class="mb-3 ml-8 mr-2 rounded-lg border border-border bg-muted/30 px-4 py-3">
                         <template v-if="stepEvents(step.id).length">
                           <div v-for="(event, eventIndex) in stepEvents(step.id)" :key="`${event.timestamp}-${eventIndex}`" class="font-mono text-[10px] leading-5" :class="eventClass(event)">
                             <div><span class="text-muted-foreground/50">[{{ eventTime(event) }}]</span> {{ event.message }}</div>

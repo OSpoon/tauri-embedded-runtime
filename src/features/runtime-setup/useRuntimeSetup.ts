@@ -3,6 +3,7 @@ import type {
   ProjectInfo,
   ProjectSnapshot,
   RuntimeEvent,
+  RuntimeKind,
   RuntimeSnapshot,
   ServiceName,
   ServiceSnapshot,
@@ -16,7 +17,8 @@ import { createDefaultSetupPlan, createDefaultWizardSteps } from "./defaults"
 
 const isTauri = "__TAURI_INTERNALS__" in window
 
-function initialSnapshot(): RuntimeSnapshot {
+function initialSnapshot(runtime: RuntimeKind = "python"): RuntimeSnapshot {
+  const requirements = { python: runtime === "python", node: runtime === "node" }
   return {
     status: "checking",
     platform: "web",
@@ -24,9 +26,10 @@ function initialSnapshot(): RuntimeSnapshot {
     runtime_root: "",
     active_generation: null,
     runtime_revision: "runtime-policy-1",
-    requirements: { python: true, node: true },
-    python: { required: true, present: false, status: "missing", path: null, version: null, issues: [] },
-    node: { required: true, present: false, status: "missing", path: null, version: null, issues: [] },
+    requirements,
+    selected_runtime: runtime,
+    python: { required: requirements.python, present: false, status: requirements.python ? "missing" : "disabled", path: null, version: null, issues: [] },
+    node: { required: requirements.node, present: false, status: requirements.node ? "missing" : "disabled", path: null, version: null, issues: [] },
     projects: [],
     message: "正在准备运行时检测…",
     checked_at: 0,
@@ -38,13 +41,14 @@ function initialSnapshot(): RuntimeSnapshot {
 
 export function useRuntimeSetup() {
   const runtimeSnapshot = ref<RuntimeSnapshot>(initialSnapshot())
+  const selectedRuntime = ref<RuntimeKind | null>(null)
   const runtimeProgress = ref(0)
   const runtimeEvents = ref<RuntimeEvent[]>([])
   const services = ref<ServiceSnapshot[]>([])
   const projectCatalog = ref<ProjectInfo[]>([])
   const runtimeActionRunning = ref(false)
   const setupStarted = ref(false)
-  const demoMessage = ref("完成检测并启动服务后，可以从这里调用两个本地服务。")
+  const demoMessage = ref("完成检测并启动服务后，可以从这里调用本地服务。")
   const setupPlan = ref<SetupPlanStep[]>(createDefaultSetupPlan())
   const wizardSteps = ref<WizardStep[]>(createDefaultWizardSteps(setupPlan.value))
   let stopRuntimeEvents: UnlistenFn | null = null
@@ -134,12 +138,12 @@ export function useRuntimeSetup() {
     wizardSteps.value = createDefaultWizardSteps(setupPlan.value)
   }
 
-  async function loadSetupPlan() {
-    if (!isTauri)
+  async function loadSetupPlan(runtime: RuntimeKind) {
+    if (!isTauri || selectedRuntime.value !== runtime)
       return
     try {
-      const plan = await invoke<SetupPlanStep[]>("runtime_setup_plan")
-      if (Array.isArray(plan) && plan.length > 0) {
+      const plan = await invoke<SetupPlanStep[]>("runtime_setup_plan", { runtime })
+      if (selectedRuntime.value === runtime && Array.isArray(plan) && plan.length > 0) {
         setupPlan.value = plan
         if (!setupStarted.value && !runtimeActionRunning.value) {
           resetWizard()
@@ -151,24 +155,25 @@ export function useRuntimeSetup() {
     }
   }
 
-  async function loadProjectCatalog() {
-    if (!isTauri)
+  async function loadProjectCatalog(runtime: RuntimeKind) {
+    if (!isTauri || selectedRuntime.value !== runtime)
       return
     try {
-      const catalog = await invoke<ProjectInfo[]>("runtime_projects_catalog")
-      if (Array.isArray(catalog))
+      const catalog = await invoke<ProjectInfo[]>("runtime_projects_catalog", { runtime })
+      if (selectedRuntime.value === runtime && Array.isArray(catalog))
         projectCatalog.value = catalog
     }
     catch {
-      projectCatalog.value = []
+      if (selectedRuntime.value === runtime)
+        projectCatalog.value = []
     }
   }
 
-  async function refreshServices() {
-    if (!isTauri)
+  async function refreshServices(runtime = selectedRuntime.value) {
+    if (!isTauri || !runtime)
       return
     try {
-      services.value = await invoke<ServiceSnapshot[]>("runtime_service_status")
+      services.value = await invoke<ServiceSnapshot[]>("runtime_service_status", { runtime })
     }
     catch {
       services.value = []
@@ -176,14 +181,15 @@ export function useRuntimeSetup() {
   }
 
   async function bootstrapRuntime() {
-    if (runtimeActionRunning.value)
+    const runtime = selectedRuntime.value
+    if (runtimeActionRunning.value || !runtime)
       return
     setupStarted.value = true
     runtimeEvents.value = []
     resetWizard()
     runtimeActionRunning.value = true
     runtimeProgress.value = 3
-    runtimeSnapshot.value = { ...runtimeSnapshot.value, status: "checking", message: "正在检查 manifest、generation 和解释器…" }
+    runtimeSnapshot.value = { ...runtimeSnapshot.value, status: "checking", selected_runtime: runtime, message: "正在检查 manifest、generation 和解释器…" }
 
     if (!isTauri) {
       const previewEvent: RuntimeEvent = {
@@ -209,10 +215,10 @@ export function useRuntimeSetup() {
     }
 
     try {
-      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_bootstrap")
+      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_bootstrap", { runtime })
       runtimeProgress.value = 100
       markWizardComplete()
-      await refreshServices()
+      await refreshServices(runtime)
     }
     catch (error) {
       runtimeSnapshot.value = {
@@ -259,7 +265,7 @@ export function useRuntimeSetup() {
   }
 
   async function repairRuntimeComponent(component: "python" | "node") {
-    if (!isTauri || runtimeActionRunning.value)
+    if (!isTauri || runtimeActionRunning.value || selectedRuntime.value !== component)
       return
     setupStarted.value = true
     runtimeEvents.value = []
@@ -275,7 +281,7 @@ export function useRuntimeSetup() {
       runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_repair_component", { component })
       runtimeProgress.value = 100
       markWizardComplete()
-      await refreshServices()
+      await refreshServices(component)
     }
     catch (error) {
       runtimeSnapshot.value = {
@@ -290,7 +296,8 @@ export function useRuntimeSetup() {
   }
 
   async function repairProjectEnvironment(projectId: string) {
-    if (!isTauri || runtimeActionRunning.value)
+    const runtime = selectedRuntime.value
+    if (!isTauri || runtimeActionRunning.value || !runtime)
       return
     setupStarted.value = true
     runtimeEvents.value = []
@@ -303,11 +310,11 @@ export function useRuntimeSetup() {
       message: `正在修复 ${projectId} 项目环境…`,
     }
     try {
-      await invoke<ProjectSnapshot>("runtime_project_repair", { projectId })
-      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_status")
+      await invoke<ProjectSnapshot>("runtime_project_repair", { projectId, runtime })
+      runtimeSnapshot.value = await invoke<RuntimeSnapshot>("runtime_status", { runtime })
       runtimeProgress.value = 100
       markWizardComplete()
-      await refreshServices()
+      await refreshServices(runtime)
     }
     catch (error) {
       runtimeSnapshot.value = {
@@ -346,11 +353,24 @@ export function useRuntimeSetup() {
     }
   }
 
+  async function selectRuntime(runtime: RuntimeKind) {
+    if (runtimeActionRunning.value)
+      return
+    selectedRuntime.value = runtime
+    setupStarted.value = false
+    runtimeProgress.value = 0
+    runtimeEvents.value = []
+    services.value = []
+    projectCatalog.value = []
+    runtimeSnapshot.value = initialSnapshot(runtime)
+    setupPlan.value = createDefaultSetupPlan(runtime)
+    resetWizard()
+    await Promise.all([loadSetupPlan(runtime), loadProjectCatalog(runtime)])
+  }
+
   onMounted(async () => {
     if (isTauri) {
       stopRuntimeEvents = await listen<RuntimeEvent>("runtime://event", event => applyRuntimeEvent(event.payload))
-      await loadSetupPlan()
-      await loadProjectCatalog()
     }
   })
 
@@ -360,6 +380,7 @@ export function useRuntimeSetup() {
 
   return {
     isTauri,
+    selectedRuntime,
     runtimeSnapshot,
     runtimeProgress,
     runtimeEvents,
@@ -373,6 +394,7 @@ export function useRuntimeSetup() {
     runtimeStatusLabel,
     runtimeDotClass,
     runtimePathLabel,
+    selectRuntime,
     bootstrapRuntime,
     repairRuntimeComponent,
     repairProjectEnvironment,

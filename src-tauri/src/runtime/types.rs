@@ -76,6 +76,7 @@ pub struct RuntimeSnapshot {
     pub active_generation: Option<String>,
     pub runtime_revision: String,
     pub requirements: RuntimeRequirements,
+    pub selected_runtime: String,
     pub python: RuntimeComponent,
     pub node: RuntimeComponent,
     pub projects: Vec<ProjectSnapshot>,

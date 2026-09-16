@@ -1,4 +1,4 @@
-use super::projects::PROJECT_SERVICES;
+use super::projects::service_for_id;
 use super::types::RuntimeSetupStep;
 
 #[derive(Debug, Clone, Copy)]
@@ -49,8 +49,10 @@ fn range_for(index: usize, total: usize) -> ProgressRange {
     ProgressRange::new(start, end.max(start.saturating_add(1)))
 }
 
-pub(crate) fn bootstrap_plan() -> Vec<BootstrapStage> {
-    let total = PROJECT_SERVICES.len() * 2 + 3;
+pub(crate) fn bootstrap_plan(runtime: &str) -> Result<Vec<BootstrapStage>, String> {
+    let service =
+        service_for_id(runtime).ok_or_else(|| format!("不支持的运行时类型: {runtime}"))?;
+    let total = 5;
     let mut index = 0;
     let mut stages = Vec::with_capacity(total);
 
@@ -62,22 +64,20 @@ pub(crate) fn bootstrap_plan() -> Vec<BootstrapStage> {
     });
     index += 1;
 
-    for service in PROJECT_SERVICES {
-        stages.push(BootstrapStage {
-            id: service.id,
-            phase: service.id,
-            kind: BootstrapStageKind::Runtime(service.id),
-            progress: range_for(index, total),
-        });
-        index += 1;
-        stages.push(BootstrapStage {
-            id: service.project_step_id,
-            phase: service.project_step_id,
-            kind: BootstrapStageKind::Projects(service.id),
-            progress: range_for(index, total),
-        });
-        index += 1;
-    }
+    stages.push(BootstrapStage {
+        id: service.id,
+        phase: service.id,
+        kind: BootstrapStageKind::Runtime(service.id),
+        progress: range_for(index, total),
+    });
+    index += 1;
+    stages.push(BootstrapStage {
+        id: service.project_step_id,
+        phase: service.project_step_id,
+        kind: BootstrapStageKind::Projects(service.id),
+        progress: range_for(index, total),
+    });
+    index += 1;
 
     stages.push(BootstrapStage {
         id: "project-tools",
@@ -92,11 +92,11 @@ pub(crate) fn bootstrap_plan() -> Vec<BootstrapStage> {
         kind: BootstrapStageKind::Verify,
         progress: range_for(index, total),
     });
-    stages
+    Ok(stages)
 }
 
-pub(crate) fn setup_steps() -> Vec<RuntimeSetupStep> {
-    bootstrap_plan()
+pub(crate) fn setup_steps(runtime: &str) -> Result<Vec<RuntimeSetupStep>, String> {
+    Ok(bootstrap_plan(runtime)?
         .into_iter()
         .map(|stage| {
             let (title, description) = match stage.kind {
@@ -136,5 +136,5 @@ pub(crate) fn setup_steps() -> Vec<RuntimeSetupStep> {
                 description,
             }
         })
-        .collect()
+        .collect::<Vec<_>>())
 }

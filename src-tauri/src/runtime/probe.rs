@@ -11,12 +11,25 @@ use super::types::{
 };
 use super::util::{architecture_name, now, platform_name};
 
-/// Both runtimes are enabled in the default example so the complete lifecycle
-/// is exercised instead of leaving the runtime manager untested.
-pub(crate) fn runtime_policy() -> RuntimeRequirements {
-    RuntimeRequirements {
-        python: true,
-        node: true,
+pub(crate) fn requirements_for_runtime(runtime: &str) -> Result<RuntimeRequirements, String> {
+    match runtime {
+        "python" => Ok(RuntimeRequirements {
+            python: true,
+            node: false,
+        }),
+        "node" => Ok(RuntimeRequirements {
+            python: false,
+            node: true,
+        }),
+        _ => Err(format!("不支持的运行时类型: {runtime}")),
+    }
+}
+
+pub(crate) fn runtime_label(runtime: &str) -> &'static str {
+    if runtime == "node" {
+        "Node.js"
+    } else {
+        "Python"
     }
 }
 
@@ -205,10 +218,6 @@ pub(crate) fn recoverable_generation(
     generations.pop()
 }
 
-pub(crate) fn inspect(app: &AppHandle) -> Result<RuntimeSnapshot, String> {
-    inspect_with_requirements(app, runtime_policy())
-}
-
 pub(crate) fn inspect_with_requirements(
     app: &AppHandle,
     requirements: RuntimeRequirements,
@@ -244,8 +253,8 @@ pub(crate) fn inspect_with_requirements(
                 node_version: NODE_VERSION.to_string(),
                 state: "ready".to_string(),
                 active_generation: Some(generation.clone()),
-                python_generation: Some(generation.clone()),
-                node_generation: Some(generation),
+                python_generation: requirements.python.then_some(generation.clone()),
+                node_generation: requirements.node.then_some(generation),
                 requirements: requirements.clone(),
             };
             write_manifest(&runtime, &recovered)?;
@@ -268,7 +277,16 @@ pub(crate) fn inspect_with_requirements(
     let (python_path, node_path) = binary_paths(&runtime, generation.as_deref());
     let python = component(requirements.python, python_path, PYTHON_VERSION);
     let node = component(requirements.node, node_path, NODE_VERSION);
-    let projects = super::project::project_snapshots(&runtime)?;
+    let selected_runtime = if requirements.node && !requirements.python {
+        "node"
+    } else {
+        "python"
+    };
+    let projects = if requirements.python && requirements.node {
+        super::project::project_snapshots(&runtime)?
+    } else {
+        super::project::project_snapshots_for_service(&runtime, selected_runtime)?
+    };
     let generation_is_complete = generation
         .as_deref()
         .and_then(|value| safe_generation_path(&runtime, value))
@@ -295,7 +313,7 @@ pub(crate) fn inspect_with_requirements(
         "ready"
     };
     let message = match status {
-        "ready" => "Python 和 Node.js 私有运行时检查通过".to_string(),
+        "ready" => format!("{} 私有运行时检查通过", runtime_label(selected_runtime)),
         "missing" => "应用运行时尚未安装".to_string(),
         "corrupted" => "应用运行时不完整，需要修复".to_string(),
         "outdated" => "应用运行时版本不符合当前策略，需要更新".to_string(),
@@ -325,6 +343,7 @@ pub(crate) fn inspect_with_requirements(
         active_generation: generation,
         runtime_revision: RUNTIME_REVISION.to_string(),
         requirements,
+        selected_runtime: selected_runtime.to_string(),
         python,
         node,
         projects,

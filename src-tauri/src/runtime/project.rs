@@ -110,7 +110,7 @@ pub(crate) struct ProjectEnvironment {
 
 struct ProjectPreparation<'a> {
     base_generation: &'a Path,
-    base_python: &'a Path,
+    base_python: Option<&'a Path>,
     base_node: Option<&'a Path>,
     progress: ProgressRange,
 }
@@ -806,15 +806,45 @@ fn project_snapshot_for(
 
 pub(crate) fn project_snapshots(runtime: &RuntimePaths) -> Result<Vec<ProjectSnapshot>, String> {
     ensure_layout(runtime)?;
-    PROJECT_MODULES
-        .iter()
+    project_snapshots_for_modules(runtime, PROJECT_MODULES.iter())
+}
+
+pub(crate) fn project_snapshots_for_service(
+    runtime: &RuntimePaths,
+    service: &str,
+) -> Result<Vec<ProjectSnapshot>, String> {
+    ensure_layout(runtime)?;
+    project_snapshots_for_modules(
+        runtime,
+        PROJECT_MODULES
+            .iter()
+            .filter(|module| module.service.id == service),
+    )
+}
+
+fn project_snapshots_for_modules<'a>(
+    runtime: &RuntimePaths,
+    modules: impl Iterator<Item = &'a super::projects::ProjectModuleSpec>,
+) -> Result<Vec<ProjectSnapshot>, String> {
+    modules
         .map(|module| project_snapshot_for(runtime, module.project_id))
         .collect()
 }
 
-pub(crate) fn project_catalog() -> Result<Vec<super::types::RuntimeProjectInfo>, String> {
-    PROJECT_MODULES
-        .iter()
+pub(crate) fn project_catalog_for_service(
+    service: &str,
+) -> Result<Vec<super::types::RuntimeProjectInfo>, String> {
+    project_catalog_for_modules(
+        PROJECT_MODULES
+            .iter()
+            .filter(|module| module.service.id == service),
+    )
+}
+
+fn project_catalog_for_modules<'a>(
+    modules: impl Iterator<Item = &'a super::projects::ProjectModuleSpec>,
+) -> Result<Vec<super::types::RuntimeProjectInfo>, String> {
+    modules
         .map(|module| {
             let profile = project_profile(module.project_id)?;
             let service = service_for_id(module.service.id)
@@ -1007,21 +1037,6 @@ fn write_text_file(path: &Path, content: &str) -> Result<(), String> {
         .map_err(|error| format!("无法写入项目文件: {error}"))
 }
 
-pub(crate) fn ensure_project_environments(
-    app: &AppHandle,
-    runtime_snapshot: &RuntimeSnapshot,
-    force: bool,
-) -> Result<Vec<ProjectSnapshot>, String> {
-    ensure_project_environments_filtered(
-        app,
-        runtime_snapshot,
-        force,
-        None,
-        true,
-        ProgressRange::new(0, 100),
-    )
-}
-
 pub(crate) fn ensure_project_environments_for_service(
     app: &AppHandle,
     runtime_snapshot: &RuntimeSnapshot,
@@ -1117,12 +1132,7 @@ fn ensure_project_environments_filtered(
         .as_deref()
         .and_then(|generation| safe_generation_path(&runtime, generation))
         .ok_or_else(|| "基础运行时 active generation 无效".to_string())?;
-    let base_python = runtime_snapshot
-        .python
-        .path
-        .as_deref()
-        .map(PathBuf::from)
-        .ok_or_else(|| "基础 Python 解释器不存在".to_string())?;
+    let base_python = runtime_snapshot.python.path.as_deref().map(PathBuf::from);
     let base_node = runtime_snapshot.node.path.as_deref().map(PathBuf::from);
 
     let mut snapshots = Vec::new();
@@ -1140,7 +1150,7 @@ fn ensure_project_environments_filtered(
             &runtime,
             &ProjectPreparation {
                 base_generation: &base_generation,
-                base_python: &base_python,
+                base_python: base_python.as_deref(),
                 base_node: base_node.as_deref(),
                 progress,
             },
@@ -1173,19 +1183,14 @@ pub(crate) fn ensure_single_project_environment(
         .as_deref()
         .and_then(|generation| safe_generation_path(&runtime, generation))
         .ok_or_else(|| "基础运行时 active generation 无效".to_string())?;
-    let base_python = runtime_snapshot
-        .python
-        .path
-        .as_deref()
-        .map(PathBuf::from)
-        .ok_or_else(|| "基础 Python 解释器不存在".to_string())?;
+    let base_python = runtime_snapshot.python.path.as_deref().map(PathBuf::from);
     let base_node = runtime_snapshot.node.path.as_deref().map(PathBuf::from);
     let snapshot = ensure_project_environment_for_id(
         app,
         &runtime,
         &ProjectPreparation {
             base_generation: &base_generation,
-            base_python: &base_python,
+            base_python: base_python.as_deref(),
             base_node: base_node.as_deref(),
             progress: ProgressRange::new(0, 100),
         },
@@ -1308,20 +1313,23 @@ fn install_project_environment(
     let result = (|| {
         match profile.service.as_str() {
             "python" => {
+                let base_python = preparation
+                    .base_python
+                    .ok_or_else(|| "基础 Python 解释器不存在".to_string())?;
                 emit_detailed_with_metadata(
                     app,
                     "project-python",
                     "running",
                     &format!("正在创建 {} 项目 Python venv", profile.framework),
                     preparation.progress.at(10),
-                    Some(format!("{} -m venv", preparation.base_python.display())),
+                    Some(format!("{} -m venv", base_python.display())),
                     None,
                     None,
                     Some(project_id.to_string()),
                     0,
                     None,
                 );
-                let mut venv_command = Command::new(preparation.base_python);
+                let mut venv_command = Command::new(base_python);
                 configure_private_env(
                     &mut venv_command,
                     preparation.base_generation,

@@ -4,13 +4,12 @@ use tauri::{AppHandle, Manager, State};
 use super::events::{emit, emit_detailed_with_metadata};
 use super::install::{install, install_component, install_runtime_stage};
 use super::operation::begin_operation;
-use super::plan::{bootstrap_plan, BootstrapStageKind};
-use super::probe::inspect;
+use super::plan::BootstrapStageKind;
+use super::probe::{inspect_with_requirements, requirements_for_runtime};
 use super::process::terminate_orphaned_processes;
 use super::project::{
-    emit_project_tools_event, ensure_project_environments, ensure_project_environments_for_service,
+    emit_project_tools_event, ensure_project_environments_for_service,
     ensure_project_environments_for_service_ordered, ensure_single_project_environment,
-    project_snapshots,
 };
 use super::projects::service_for_id;
 use super::services::{service_status, start_services, stop_children};
@@ -21,29 +20,32 @@ use super::types::{
 };
 
 #[tauri::command]
-pub fn runtime_status(app: AppHandle) -> Result<RuntimeSnapshot, String> {
-    inspect(&app)
+pub fn runtime_status(app: AppHandle, runtime: String) -> Result<RuntimeSnapshot, String> {
+    inspect_with_requirements(&app, requirements_for_runtime(&runtime)?)
 }
 
 #[tauri::command]
-pub fn runtime_setup_plan() -> Vec<RuntimeSetupStep> {
-    super::plan::setup_steps()
+pub fn runtime_setup_plan(runtime: String) -> Result<Vec<RuntimeSetupStep>, String> {
+    super::plan::setup_steps(&runtime)
 }
 
 #[tauri::command]
-pub fn runtime_projects_catalog() -> Result<Vec<RuntimeProjectInfo>, String> {
-    super::project::project_catalog()
+pub fn runtime_projects_catalog(runtime: String) -> Result<Vec<RuntimeProjectInfo>, String> {
+    requirements_for_runtime(&runtime)?;
+    super::project::project_catalog_for_service(&runtime)
 }
 
 #[tauri::command]
 pub async fn runtime_bootstrap(
     app: AppHandle,
     state: State<'_, ServiceState>,
+    runtime: String,
 ) -> Result<RuntimeSnapshot, String> {
+    requirements_for_runtime(&runtime)?;
     let service_state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let _operation = begin_operation(&service_state)?;
-        bootstrap_blocking(app, service_state)
+        bootstrap_blocking(app, service_state, &runtime)
     })
     .await
     .map_err(|error| format!("运行时后台任务异常: {error}"))?
@@ -76,8 +78,10 @@ fn can_reuse_runtime_component(
 pub(crate) fn bootstrap_blocking(
     app: AppHandle,
     state: ServiceState,
+    runtime: &str,
 ) -> Result<RuntimeSnapshot, String> {
-    let plan = bootstrap_plan();
+    let requirements = requirements_for_runtime(runtime)?;
+    let plan = super::plan::bootstrap_plan(runtime)?;
     let check_stage = plan
         .iter()
         .find(|stage| matches!(stage.kind, BootstrapStageKind::Check))
@@ -89,7 +93,7 @@ pub(crate) fn bootstrap_blocking(
         "正在检查应用运行时",
         check_stage.progress.at(20),
     );
-    let current = inspect(&app)?;
+    let current = inspect_with_requirements(&app, requirements.clone())?;
     emit_detailed_with_metadata(
         &app,
         check_stage.phase,
@@ -166,7 +170,7 @@ pub(crate) fn bootstrap_blocking(
             BootstrapStageKind::Check | BootstrapStageKind::Verify => {}
         }
     }
-    if let Err(error) = start_services(&app, &state) {
+    if let Err(error) = start_services(&app, &state, runtime) {
         if let Some(previous_manifest) = previous_manifest {
             if let Ok(runtime) = paths(&app) {
                 let _ = write_manifest(&runtime, &previous_manifest);
@@ -209,20 +213,22 @@ pub(crate) fn bootstrap_blocking(
         }
         return Err(error);
     }
-    inspect(&app)
+    inspect_with_requirements(&app, requirements)
 }
 
 #[tauri::command]
 pub async fn runtime_install(
     app: AppHandle,
     state: State<'_, ServiceState>,
+    runtime: String,
 ) -> Result<RuntimeSnapshot, String> {
+    requirements_for_runtime(&runtime)?;
     let runtime_state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let _operation = begin_operation(&runtime_state)?;
-        let base_snapshot = install(&app, false)?;
-        ensure_project_environments(&app, &base_snapshot, false)?;
-        inspect(&app)
+        let base_snapshot = install(&app, false, &runtime)?;
+        ensure_project_environments_for_service(&app, &base_snapshot, &runtime, false)?;
+        inspect_with_requirements(&app, requirements_for_runtime(&runtime)?)
     })
     .await
     .map_err(|error| format!("运行时安装后台任务异常: {error}"))?
@@ -232,13 +238,15 @@ pub async fn runtime_install(
 pub async fn runtime_repair(
     app: AppHandle,
     state: State<'_, ServiceState>,
+    runtime: String,
 ) -> Result<RuntimeSnapshot, String> {
+    requirements_for_runtime(&runtime)?;
     let runtime_state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let _operation = begin_operation(&runtime_state)?;
-        let base_snapshot = install(&app, true)?;
-        ensure_project_environments(&app, &base_snapshot, true)?;
-        inspect(&app)
+        let base_snapshot = install(&app, true, &runtime)?;
+        ensure_project_environments_for_service(&app, &base_snapshot, &runtime, true)?;
+        inspect_with_requirements(&app, requirements_for_runtime(&runtime)?)
     })
     .await
     .map_err(|error| format!("运行时修复后台任务异常: {error}"))?
@@ -264,7 +272,7 @@ pub async fn runtime_repair_component(
             ));
         }
         ensure_project_environments_for_service(&app, &base_snapshot, &component, true)?;
-        inspect(&app)
+        inspect_with_requirements(&app, requirements_for_runtime(&component)?)
     })
     .await
     .map_err(|error| format!("运行时组件修复后台任务异常: {error}"))?
@@ -274,40 +282,48 @@ pub async fn runtime_repair_component(
 pub async fn runtime_start_services(
     app: AppHandle,
     state: State<'_, ServiceState>,
+    runtime: String,
 ) -> Result<Vec<ServiceSnapshot>, String> {
+    let requirements = requirements_for_runtime(&runtime)?;
     let service_state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let _operation = begin_operation(&service_state)?;
-        let snapshot = inspect(&app)?;
+        let snapshot = inspect_with_requirements(&app, requirements)?;
         if snapshot.status != "ready" {
             return Err(format!("运行时尚未就绪: {}", snapshot.message));
         }
-        ensure_project_environments(&app, &snapshot, false)?;
-        start_services(&app, &service_state)
+        ensure_project_environments_for_service(&app, &snapshot, &runtime, false)?;
+        start_services(&app, &service_state, &runtime)
     })
     .await
     .map_err(|error| format!("示例服务启动后台任务异常: {error}"))?
 }
 
 #[tauri::command]
-pub fn runtime_projects_status(app: AppHandle) -> Result<Vec<ProjectSnapshot>, String> {
+pub fn runtime_projects_status(
+    app: AppHandle,
+    runtime_name: String,
+) -> Result<Vec<ProjectSnapshot>, String> {
+    requirements_for_runtime(&runtime_name)?;
     let runtime = super::storage::paths(&app)?;
-    project_snapshots(&runtime)
+    super::project::project_snapshots_for_service(&runtime, &runtime_name)
 }
 
 #[tauri::command]
 pub async fn runtime_projects_install(
     app: AppHandle,
     state: State<'_, ServiceState>,
+    runtime: String,
 ) -> Result<Vec<ProjectSnapshot>, String> {
+    let requirements = requirements_for_runtime(&runtime)?;
     let runtime_state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let _operation = begin_operation(&runtime_state)?;
-        let base_snapshot = inspect(&app)?;
+        let base_snapshot = inspect_with_requirements(&app, requirements)?;
         if base_snapshot.status != "ready" {
             return Err(format!("基础运行时尚未就绪: {}", base_snapshot.message));
         }
-        ensure_project_environments(&app, &base_snapshot, false)
+        ensure_project_environments_for_service(&app, &base_snapshot, &runtime, false)
     })
     .await
     .map_err(|error| format!("项目依赖安装后台任务异常: {error}"))?
@@ -317,15 +333,17 @@ pub async fn runtime_projects_install(
 pub async fn runtime_projects_repair(
     app: AppHandle,
     state: State<'_, ServiceState>,
+    runtime: String,
 ) -> Result<Vec<ProjectSnapshot>, String> {
+    let requirements = requirements_for_runtime(&runtime)?;
     let runtime_state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let _operation = begin_operation(&runtime_state)?;
-        let base_snapshot = inspect(&app)?;
+        let base_snapshot = inspect_with_requirements(&app, requirements)?;
         if base_snapshot.status != "ready" {
             return Err(format!("基础运行时尚未就绪: {}", base_snapshot.message));
         }
-        ensure_project_environments(&app, &base_snapshot, true)
+        ensure_project_environments_for_service(&app, &base_snapshot, &runtime, true)
     })
     .await
     .map_err(|error| format!("项目依赖修复后台任务异常: {error}"))?
@@ -336,11 +354,13 @@ pub async fn runtime_project_repair(
     app: AppHandle,
     state: State<'_, ServiceState>,
     project_id: String,
+    runtime: String,
 ) -> Result<ProjectSnapshot, String> {
+    let requirements = requirements_for_runtime(&runtime)?;
     let runtime_state = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let _operation = begin_operation(&runtime_state)?;
-        let base_snapshot = inspect(&app)?;
+        let base_snapshot = inspect_with_requirements(&app, requirements)?;
         if base_snapshot.status != "ready" {
             return Err(format!("基础运行时尚未就绪: {}", base_snapshot.message));
         }
@@ -399,6 +419,8 @@ pub(crate) fn shutdown_runtime(app: &AppHandle) {
 #[tauri::command]
 pub fn runtime_service_status(
     state: State<'_, ServiceState>,
+    runtime: String,
 ) -> Result<Vec<ServiceSnapshot>, String> {
-    service_status(&state)
+    requirements_for_runtime(&runtime)?;
+    service_status(&state, &runtime)
 }
