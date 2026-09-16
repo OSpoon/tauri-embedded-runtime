@@ -45,6 +45,22 @@
 - 应用退出时回收由应用启动的服务进程
 - 基于 shadcn-vue 的统一界面组件和滚动区域
 
+## 前端基础能力
+
+当前模板已经内置可直接复用的前端基础设施，真实业务项目不需要重复安装：
+
+- `vue-router`：使用 hash history，适用于 Tauri 静态资源和后续多页面扩展
+- `@vueuse/core`：主题状态、浏览器能力和常用组合式工具
+- `ModeToggle`：位于 `src/components/mode-toggle/`，支持浅色、深色和跟随系统
+- `vue-sonner`：通过 `src/components/ui/sonner/` 提供统一通知入口
+- `@tanstack/vue-table`：配合 `src/components/ui/table/utils.ts` 的 `valueUpdater`
+  处理表格状态更新
+- shadcn-vue UI primitives：表单、弹窗、菜单、导航、表格、滚动区域等组件均已放在
+  `src/components/ui/`
+
+当前项目的 updater 由 Rust 原生菜单处理，starter 中的前端 updater 页面和 Node 专用示例页
+不直接复制，以避免与本项目的双运行时生命周期和更新流程产生两套实现。
+
 ## 开始使用
 
 ### 环境要求
