@@ -128,3 +128,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .runtime-page {
+    @apply flex min-h-0 flex-1 flex-col bg-background text-foreground;
+  }
+
+  .runtime-page-header {
+    @apply shrink-0 border-b border-border bg-background;
+  }
+
+  .runtime-page-header-inner {
+    @apply mx-auto flex h-12 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 xl:h-14 xl:gap-4 xl:px-10;
+  }
+
+  .runtime-page-content {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 xl:px-10;
+  }
+}

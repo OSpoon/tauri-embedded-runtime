@@ -18,7 +18,7 @@ import {
   Settings2,
 } from "@lucide/vue"
 import { computed } from "vue"
-import logoUrl from "@/assets/tauri-embedded-runtime-logo.png"
+import RuntimeAppHeader from "@/components/runtime/RuntimeAppHeader.vue"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -51,6 +51,13 @@ const runtimeVersion = computed(() =>
     ? props.snapshot.node.version
     : props.snapshot.python.version,
 )
+const runtimeDisplay = computed(() => {
+  const version = runtimeVersion.value?.trim()
+  if (!version)
+    return runtimeLabel.value
+  const normalizedVersion = version.replace(/^(?:c?python|node(?:\.js)?)(?:\s+|$)/i, "").trim()
+  return normalizedVersion ? `${runtimeLabel.value} ${normalizedVersion}` : runtimeLabel.value
+})
 const runtimeIcon = computed(() =>
   props.snapshot.selected_runtime === "node" ? Braces : Code2,
 )
@@ -59,22 +66,12 @@ const serviceEndpoint = computed(() =>
     ? `http://127.0.0.1:${activeService.value.port}`
     : "等待服务启动",
 )
-const serviceStatus = computed(() =>
-  activeService.value?.running ? "健康运行" : "等待启动",
-)
 const canCallService = computed(() =>
   Boolean(
     activeProject.value
     && activeService.value?.running
     && activeProject.value.demo_path,
   ),
-)
-const lastCheckLabel = computed(() =>
-  props.snapshot.checked_at
-    ? new Date(props.snapshot.checked_at * 1000).toLocaleTimeString([], {
-        hour12: false,
-      })
-    : "刚刚",
 )
 
 function isTerminalEvent(event: RuntimeEvent) {
@@ -155,58 +152,34 @@ function callActiveService() {
 </script>
 
 <template>
-  <main class="flex min-h-0 flex-1 flex-col bg-background text-foreground">
-    <header class="shrink-0 border-b border-border bg-background">
-      <div
-        class="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10"
-      >
-        <div class="flex min-w-0 items-center gap-3">
-          <img
-            :src="logoUrl"
-            alt="Tauri Embedded Runtime Logo"
-            class="size-8 shrink-0 rounded-lg"
-          >
-          <div class="min-w-0">
-            <p
-              class="truncate text-sm font-semibold tracking-[-0.03em] text-foreground"
-            >
-              Tauri Embedded Runtime
-            </p>
-            <p class="truncate text-[10px] text-muted-foreground">
-              Local business workspace
-            </p>
-          </div>
-        </div>
-
-        <div class="flex shrink-0 items-center gap-2 sm:gap-4">
-          <div class="hidden items-center gap-2 sm:flex">
-            <component :is="runtimeIcon" class="size-4 text-primary" />
-            <span class="text-xs text-foreground">{{ runtimeLabel }} {{ runtimeVersion ?? "runtime" }}</span>
-            <span class="flex items-center gap-1.5 text-xs text-emerald-600">
-              <span class="size-2 rounded-full bg-emerald-500" />
-              运行中
-            </span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            class="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground"
-            @click="emit('back')"
-          >
-            <Settings2 class="size-3.5" />
-            <span class="hidden sm:inline">运行检测</span>
-          </Button>
-        </div>
+  <main class="runtime-page">
+    <RuntimeAppHeader>
+      <div class="hidden items-center gap-1.5 sm:flex xl:gap-2">
+        <component :is="runtimeIcon" class="size-3.5 text-primary xl:size-4" />
+        <span class="text-[10px] text-foreground xl:text-xs">{{ runtimeDisplay }}</span>
+        <span class="flex items-center gap-1 text-[10px] text-emerald-600 xl:gap-1.5 xl:text-xs">
+          <span class="size-1.5 rounded-full bg-emerald-500 xl:size-2" />
+          运行中
+        </span>
       </div>
-    </header>
+      <Button
+        variant="ghost"
+        size="sm"
+        class="h-7 gap-1.5 px-2 text-[10px] text-muted-foreground xl:h-8 xl:px-2.5 xl:text-xs"
+        @click="emit('back')"
+      >
+        <Settings2 class="size-3 xl:size-3.5" />
+        <span class="hidden sm:inline">运行检测</span>
+      </Button>
+    </RuntimeAppHeader>
 
     <ScrollArea class="min-h-0 flex-1">
-      <div class="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-10 lg:px-10">
+      <div class="runtime-page-content py-8 sm:py-10 lg:py-12">
         <section class="overflow-hidden rounded-2xl border border-border">
           <div
             class="grid sm:grid-cols-[1.15fr_0.8fr_1fr_auto] sm:divide-x sm:divide-y-0"
           >
-            <div class="px-5 py-5 sm:px-7">
+            <div class="px-5 py-5 sm:px-7 lg:px-8 lg:py-6">
               <p
                 class="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
               >
@@ -219,7 +192,7 @@ function callActiveService() {
                 {{ serviceEndpoint }}
               </p>
             </div>
-            <div class="px-5 py-5 sm:px-6">
+            <div class="px-5 py-5 sm:px-6 lg:px-7 lg:py-6">
               <p
                 class="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
               >
@@ -229,7 +202,7 @@ function callActiveService() {
                 {{ activeService?.port ?? "—" }}
               </p>
             </div>
-            <div class="flex items-center gap-3 px-5 py-5 sm:px-6">
+            <div class="flex items-center gap-3 px-5 py-5 sm:px-6 lg:px-7 lg:py-6">
               <component :is="runtimeIcon" class="size-5 text-primary" />
               <div>
                 <p
@@ -238,11 +211,11 @@ function callActiveService() {
                   运行时
                 </p>
                 <p class="mt-1 text-sm text-foreground">
-                  {{ runtimeLabel }} {{ runtimeVersion ?? "—" }}
+                  {{ runtimeDisplay }}
                 </p>
               </div>
             </div>
-            <div class="flex items-center gap-3 px-5 py-5 sm:px-7">
+            <div class="flex items-center gap-3 px-5 py-5 sm:px-7 lg:px-8 lg:py-6">
               <span
                 class="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600"
               >
@@ -262,7 +235,7 @@ function callActiveService() {
           </div>
 
           <div
-            class="flex flex-col items-start justify-between gap-3 border-t border-border bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:px-7"
+            class="flex flex-col items-start justify-between gap-3 border-t border-border bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:px-7 lg:px-8 lg:py-5"
           >
             <div
               class="flex min-w-0 items-center gap-2 text-xs text-muted-foreground"
@@ -271,7 +244,7 @@ function callActiveService() {
               <span class="truncate">{{ props.message }}</span>
             </div>
             <Button
-              class="h-10 shrink-0 gap-2 px-5 shadow-sm"
+              class="h-10 shrink-0 gap-2 px-5 shadow-sm lg:h-11 lg:px-6"
               :disabled="!canCallService"
               @click="callActiveService"
             >
@@ -281,7 +254,7 @@ function callActiveService() {
           </div>
         </section>
 
-        <section class="mt-8">
+        <section class="mt-8 lg:mt-10">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-2">
               <Activity class="size-4 text-primary" />
@@ -299,7 +272,7 @@ function callActiveService() {
               <div
                 v-for="(event, index) in recentEvents"
                 :key="`${event.timestamp}-${index}`"
-                class="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 sm:grid-cols-[auto_100px_72px_1fr_auto] sm:px-5"
+                class="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 sm:grid-cols-[auto_100px_72px_1fr_auto] sm:px-5 lg:py-3.5"
               >
                 <span class="flex size-5 items-center justify-center">
                   <span
